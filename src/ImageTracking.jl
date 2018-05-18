@@ -1,5 +1,19 @@
+__precompile__()
+
 module ImageTracking
 
-# package code goes here
+using Images
+using ImageFiltering
+using Interpolations
 
-end # module
+include("optical_flow.jl")
+
+export
+
+	# main functions
+	optical_flow,
+
+	# optical flow algorithms
+	LK
+
+end
