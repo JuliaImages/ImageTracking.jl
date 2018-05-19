@@ -1,34 +1,34 @@
 """
     LK(Args...)
 
-A differential method for optical flow estimation developed by Bruce D. Lucas 
-and Takeo Kanade. It assumes that the flow is essentially constant in a local 
-neighbourhood of the pixel under consideration, and solves the basic optical flow 
+A differential method for optical flow estimation developed by Bruce D. Lucas
+and Takeo Kanade. It assumes that the flow is essentially constant in a local
+neighbourhood of the pixel under consideration, and solves the basic optical flow
 equations for all the pixels in that neighbourhood, by the least squares criterion.
 
 The different arguments are:
 
  -  prev_points       =  Vector of Coordinates for which the flow needs to be found
- -  next_points       =  Vector of Coordinates containing initial estimates of new positions of 
+ -  next_points       =  Vector of Coordinates containing initial estimates of new positions of
                          input features in next image
- -  window_size       =  Size of the search window at each pyramid level; the total size of the 
+ -  window_size       =  Size of the search window at each pyramid level; the total size of the
                          window used is 2*window_size + 1
- -  max_level         =  0-based maximal pyramid level number; if set to 0, pyramids are not used 
+ -  max_level         =  0-based maximal pyramid level number; if set to 0, pyramids are not used
                          (single level), if set to 1, two levels are used, and so on
  -  estimate_flag     =  true -> Use next_points as initial estimate
                          false -> Copy prev_points to next_points and use as estimate
  -  term_condition    =  The termination criteria of the iterative search algorithm i.e the number of iterations
- -  min_eigen_thresh  =  The algorithm calculates the minimum eigenvalue of a (2 x 2) normal matrix of optical 
-                         flow equations, divided by number of pixels in a window; if this value is less than 
+ -  min_eigen_thresh  =  The algorithm calculates the minimum eigenvalue of a (2 x 2) normal matrix of optical
+                         flow equations, divided by number of pixels in a window; if this value is less than
                          min_eigen_thresh, then a corresponding feature is filtered out and its flow is not processed
                          (Default value is 10^-4)
 
 ## References
 
-B. D. Lucas, & Kanade. "An Interative Image Registration Technique with an Application to Stereo Vision," 
+B. D. Lucas, & Kanade. "An Interative Image Registration Technique with an Application to Stereo Vision,"
 DARPA Image Understanding Workshop, pp 121-130, 1981.
 
-J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas kanadefeature tracker description of the 
+J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas kanadefeature tracker description of the
 algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
 
@@ -45,9 +45,15 @@ end
 LK(prev_points::Array{Coordinate{T}, 1}, next_points::Array{Coordinate{F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int64, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.0001)
 
 function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::LK{}) where T <: Gray
+    if algo.estimate_flag
+        @assert size(prev_points) == size(next_points)
+    end
+
+    # Construct gaussian pyramid for both the images
     first_pyr = gaussian_pyramid(first_img, algo.max_level, 2, 1.0)
     second_pyr = gaussian_pyramid(second_img, algo.max_level, 2, 1.0)
 
+    # Initilisation of the output arrays
     guess_flow = Array{Coordinate{Float64},1}(size(algo.prev_points)[1])
     final_flow = Array{Coordinate{Float64},1}(size(algo.prev_points)[1])
     status_array = trues(size(algo.prev_points))
@@ -64,32 +70,45 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     min_eigen = 0.0
     grid_size = 0
 
+    # Iterating over each level of the pyramids
     for i = algo.max_level+1:-1:1
+        # Find x and y image gradients with scharr kernel (As written in Refernce [2])
         Ix, Iy = imgradients(first_pyr[i], KernelFactors.scharr, Fill(zero(eltype(first_pyr[i]))))
 
+        # Extrapolate the second image so as to get intensity at non integral points
         itp = interpolate(second_pyr[i], BSpline(Quadratic(Flat())), OnGrid())
         etp = extrapolate(itp, zero(eltype(second_pyr[i])))
 
+        # Calculate Ixx, Iyy and Ixy taking Gaussian weights for pixels in the grid
         Ixx = imfilter(Ix.*Ix, Kernel.gaussian(4))
         Iyy = imfilter(Iy.*Iy, Kernel.gaussian(4))
         Ixy = imfilter(Ix.*Iy, Kernel.gaussian(4))
 
+        # Running the algorithm for each input point
         for j = 1:size(algo.prev_points)[1]
 
+            # Check if point is lost
             if status_array[j]
+                # Position of point in current pyramid level
                 point = Coordinate(floor(Int,(algo.prev_points[j].x)/2^i),floor(Int,(algo.prev_points[j].y)/2^i))
+                # Bounds for the search window
                 grid = [max(1,point.y - algo.window_size):min(size(first_pyr[i])[1], point.y + algo.window_size), max(1,point.x - algo.window_size):min(size(first_pyr[i])[2],point.x + algo.window_size)]
 
+                # Spatial Gradient Matrix
                 G = [sum(Ixx[grid...]) sum(Ixy[grid...])
                      sum(Ixy[grid...]) sum(Iyy[grid...])]
 
                 temp_flow = Coordinate(0.0,0.0)
 
+                # Iterating till terminating condition
                 for k = 1:algo.term_condition
+                    # Diff flow between images to calculate the image difference
                     diff_flow = guess_flow[j] + temp_flow
 
+                    # Check if the search window is present completely in the image
                     grid_1, grid_2, flag = get_grid(first_pyr[i], grid, point, diff_flow, algo.window_size)
 
+                    # Calculate the flow
                     δI = first_pyr[i][grid_1...] .- etp[grid_2...]
                     I_x = Ix[grid_1...]
                     I_y = Iy[grid_1...]
@@ -105,10 +124,12 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                     ηk = G_inv*bk
                     temp_flow = ηk + temp_flow
 
+                    # Minimum eigenvalue in the matrix is used as the error function
                     min_eigen = eigmin(G)
                     error_array[j] = min_eigen
                     grid_size = (grid_1[1].stop - grid_1[1].start + 1) * (grid_1[2].stop - grid_1[2].start + 1)
 
+                    # Check whether point is lost
                     if is_lost(first_pyr[i], temp_flow, min_eigen, algo.min_eigen_thresh, grid_size)
                         status_array[j] = false
                         final_flow[j] = Coordinate(0.0,0.0)
@@ -121,8 +142,10 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                 end
             end
         end
+        #Guess for the next level of pyramid
         guess_flow = 2*(guess_flow .+ final_flow)
     end
+    # Final output flow
     output_flow = 0.5*guess_flow
     return output_flow, status_array, error_array
 end
@@ -168,6 +191,7 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
 
         x21 = clamp(new_point.x-window_size, 1, size(img)[2])
         x22 = clamp(new_point.x+window_size, 1, size(img)[2])
+        #TODO: Handle case for upper bound
         if x21 == 1
             x22 = ceil(x22)
             x11 = convert(Int64, x21)

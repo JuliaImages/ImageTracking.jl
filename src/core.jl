@@ -1,5 +1,5 @@
 """
-	`Coordinate` type contains two fields x and y representing the 
+	`Coordinate` type contains two fields x and y representing the
 	Cartesian coordinates.
 """
 
@@ -7,6 +7,8 @@ mutable struct Coordinate{T <: Union{Int64,Float64}}
     x::T
     y::T
 end
+
+# Functions for calculations with Coordinate type
 
 import Base.+
 import Base.*

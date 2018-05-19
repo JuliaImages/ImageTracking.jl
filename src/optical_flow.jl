@@ -9,7 +9,7 @@ abstract type OpticalFlowAlgo end
 """
 	optical_flow(prev_img, next_img, algo)
 
-Returns the flow from `prev_img` to `next_image` for the points provided in the `algo` 
+Returns the flow from `prev_img` to `next_image` for the points provided in the `algo`
 type using specified algorithm `algo`.
 """
 
