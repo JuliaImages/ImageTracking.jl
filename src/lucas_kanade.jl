@@ -15,13 +15,13 @@ The different arguments are:
                          window used is 2*window_size + 1
  -  max_level         =  0-based maximal pyramid level number; if set to 0, pyramids are not used 
                          (single level), if set to 1, two levels are used, and so on
- -  estimate_flag     =  0 -> Use next_points as initial estimate (Default Value)
-                         1 -> Copy prev_points to next_points and use as estimate
+ -  estimate_flag     =  true -> Use next_points as initial estimate
+                         false -> Copy prev_points to next_points and use as estimate
  -  term_condition    =  The termination criteria of the iterative search algorithm i.e the number of iterations
  -  min_eigen_thresh  =  The algorithm calculates the minimum eigenvalue of a (2 x 2) normal matrix of optical 
                          flow equations, divided by number of pixels in a window; if this value is less than 
                          min_eigen_thresh, then a corresponding feature is filtered out and its flow is not processed
-                         (Default value is 0.1)
+                         (Default value is 10^-4)
 
 ## References
 
@@ -32,28 +32,30 @@ J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas kanadefeature tr
 algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
 
-struct LK{} <: OpticalFlowAlgo
-    prev_points::Array{Coordinate{Int64}, 1}
-    next_points::Array{Coordinate{Float64}, 1}
-    window_size::Int64
-    max_level::Int64
-    estimate_flag::Bool
-    term_condition::Int64
-    min_eigen_thresh::Float64
+struct LK{T <: Int64, F <: Float64, V <: Bool} <: OpticalFlowAlgo
+    prev_points::Array{Coordinate{T}, 1}
+    next_points::Array{Coordinate{F}, 1}
+    window_size::T
+    max_level::T
+    estimate_flag::V
+    term_condition::T
+    min_eigen_thresh::F
 end
 
+LK(prev_points::Array{Coordinate{T}, 1}, next_points::Array{Coordinate{F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int64, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.0001)
+
 function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::LK{}) where T <: Gray
-    first_pyr = gaussian_pyramid(first_img, max_level, 2, 1.0)
-    second_pyr = gaussian_pyramid(second_img, max_level, 2, 1.0)
+    first_pyr = gaussian_pyramid(first_img, algo.max_level, 2, 1.0)
+    second_pyr = gaussian_pyramid(second_img, algo.max_level, 2, 1.0)
 
-    guess_flow = Array{Coordinate{Float64},1}(size(prev_points)[1])
-    final_flow = Array{Coordinate{Float64},1}(size(prev_points)[1])
-    status_array = trues(size(prev_points))
-    error_array = zeros(Float64, size(prev_points))
+    guess_flow = Array{Coordinate{Float64},1}(size(algo.prev_points)[1])
+    final_flow = Array{Coordinate{Float64},1}(size(algo.prev_points)[1])
+    status_array = trues(size(algo.prev_points))
+    error_array = zeros(Float64, size(algo.prev_points))
 
-    for i = 1:size(prev_points)[1]
-        if flag
-            guess_flow[i] = Coordinate((next_points[i].x - prev_points[i].x)/2^max_level,(next_points[i].y - prev_points[i].y)/2^max_level)
+    for i = 1:size(algo.prev_points)[1]
+        if algo.estimate_flag
+            guess_flow[i] = Coordinate((algo.next_points[i].x - algo.prev_points[i].x)/2^algo.max_level,(algo.next_points[i].y - algo.prev_points[i].y)/2^algo.max_level)
         else
             guess_flow[i] = Coordinate(0.0,0.0)
         end
@@ -62,7 +64,7 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     min_eigen = 0.0
     grid_size = 0
 
-    for i = max_level+1:-1:1
+    for i = algo.max_level+1:-1:1
         Ix, Iy = imgradients(first_pyr[i], KernelFactors.scharr, Fill(zero(eltype(first_pyr[i]))))
 
         itp = interpolate(second_pyr[i], BSpline(Quadratic(Flat())), OnGrid())
@@ -72,21 +74,21 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
         Iyy = imfilter(Iy.*Iy, Kernel.gaussian(4))
         Ixy = imfilter(Ix.*Iy, Kernel.gaussian(4))
 
-        for j = 1:size(prev_points)[1]
+        for j = 1:size(algo.prev_points)[1]
 
             if status_array[j]
-                point = Coordinate(floor(Int,(prev_points[j].x)/2^i),floor(Int,(prev_points[j].y)/2^i))
-                grid = [max(1,point.y-window_size):min(size(first_pyr[i])[1],point.y+window_size), max(1,point.x-window_size):min(size(first_pyr[i])[2],point.x+window_size)]
+                point = Coordinate(floor(Int,(algo.prev_points[j].x)/2^i),floor(Int,(algo.prev_points[j].y)/2^i))
+                grid = [max(1,point.y - algo.window_size):min(size(first_pyr[i])[1], point.y + algo.window_size), max(1,point.x - algo.window_size):min(size(first_pyr[i])[2],point.x + algo.window_size)]
 
                 G = [sum(Ixx[grid...]) sum(Ixy[grid...])
                      sum(Ixy[grid...]) sum(Iyy[grid...])]
 
                 temp_flow = Coordinate(0.0,0.0)
 
-                for k = 1:term_condition
+                for k = 1:algo.term_condition
                     diff_flow = guess_flow[j] + temp_flow
 
-                    grid_1, grid_2, flag = get_grid(first_pyr[i], grid, point, diff_flow, window_size)
+                    grid_1, grid_2, flag = get_grid(first_pyr[i], grid, point, diff_flow, algo.window_size)
 
                     δI = first_pyr[i][grid_1...] .- etp[grid_2...]
                     I_x = Ix[grid_1...]
@@ -107,7 +109,7 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                     error_array[j] = min_eigen
                     grid_size = (grid_1[1].stop - grid_1[1].start + 1) * (grid_1[2].stop - grid_1[2].start + 1)
 
-                    if is_lost(first_pyr[i], temp_flow, min_eigen, min_eigen_thresh, grid_size)
+                    if is_lost(first_pyr[i], temp_flow, min_eigen, algo.min_eigen_thresh, grid_size)
                         status_array[j] = false
                         final_flow[j] = Coordinate(0.0,0.0)
                         break
@@ -138,7 +140,7 @@ function is_lost(img::AbstractArray{T, 2}, point::Coordinate, min_eigen::Float64
         return true
     else
         val = min_eigen/window
-        println(val)
+
         if val < min_eigen_thresh
             return true
         else
