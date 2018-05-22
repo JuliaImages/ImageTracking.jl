@@ -5,7 +5,7 @@ test_image = "mandrill"
 number_test_pts = 200
 precision = 0.1
 max_error_points_percentage = 10
-max_allowed_error = 1
+max_allowed_error = 1.5
 max_lost_points_percentage = 5
 
 function test_lk(number_test_pts::Int64, flow::Array{Coordinate{Float64}, 1}, x_flow::Float64, y_flow::Float64, status::BitArray{1}, err::Array{Float64, 1}, precision::Float64)
