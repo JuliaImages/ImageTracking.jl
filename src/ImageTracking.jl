@@ -5,14 +5,11 @@ module ImageTracking
 using Images
 using ImageFiltering
 using Interpolations
+using StaticArrays
 
-include("core.jl")
 include("optical_flow.jl")
 
 export
-
-	# types
-	Coordinate,
 
 	# main functions
 	optical_flow,
