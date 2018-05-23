@@ -45,6 +45,8 @@ end
     corners = imcorner(img1, method=shi_tomasi)
     y, x = findn(corners)
     a = map((yi, xi) -> SVector{2}(yi, xi), y, x)
+
+    srand(1234)
     pts = rand(a, (number_test_pts,))
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
@@ -68,8 +70,6 @@ end
         end
     end
 
-    pts = rand(a, (number_test_pts,))
-
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 
     error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 0.0, 3.0, status, err, precision)
@@ -90,8 +90,6 @@ end
             img2[i,j] = img1[i-3,j-1]
         end
     end
-
-    pts = rand(a, (number_test_pts,))
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 

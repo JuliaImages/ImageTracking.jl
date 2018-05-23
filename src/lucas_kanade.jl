@@ -157,7 +157,6 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
 end
 
 function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
-    #TODO: Discuss the lower limit for in_image bound
     if point[1] < 1 || point[2] < 1 || point[1] > size(img)[1] || point[2] > size(img)[2]
         return false
     end
