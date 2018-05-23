@@ -15,7 +15,7 @@ type using specified algorithm `algo`.
 
 function optical_flow(prev_img::AbstractArray{T, 2}, next_image::AbstractArray{T,2}, algo::OpticalFlowAlgo) where T <: Gray
 	# sanity checks
-	@assert size(prev_img) == size(next_image) "Images must have the same size"
+	@assert size(indices(prev_img)) == size(indices(next_image)) "Images must have the same size"
 
 	# dispatch appropriate algorithm
 	optflow(prev_img, next_image, algo)

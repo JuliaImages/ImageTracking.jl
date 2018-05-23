@@ -1,9 +1,9 @@
-using Images, TestImages, StaticArrays
+using Images, TestImages, StaticArrays, CoordinateTransformations
 
 # Testing constants
 test_image = "mandrill"
 number_test_pts = 500
-precision = 0.1
+precision = 0.3
 max_error_points_percentage = 10
 max_allowed_error = 0.1
 max_lost_points_percentage = 40
@@ -63,12 +63,7 @@ end
 
 
     # Basic translations (Vertical)
-    img2 = similar(img1)
-    for i = 4:size(img1)[1]
-        for j = 1:size(img1)[2]
-            img2[i,j] = img1[i-3,j]
-        end
-    end
+    img2 = warp(img1, Translation(-3.0,0.0))
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 
@@ -84,12 +79,7 @@ end
 
 
     # Basic translations (Both)
-    img2 = similar(img1)
-    for i = 4:size(img1)[1]
-        for j = 2:size(img1)[2]
-            img2[i,j] = img1[i-3,j-1]
-        end
-    end
+    img2 = warp(img1, Translation(-3.0,-1.0))
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 

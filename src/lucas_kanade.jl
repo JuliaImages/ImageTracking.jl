@@ -92,7 +92,11 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                 # Position of point in current pyramid level
                 point = MVector{2}(floor(Int,(algo.prev_points[j][1])/2^i),floor(Int,(algo.prev_points[j][2])/2^i))
                 # Bounds for the search window
-                grid = [max(1,point[1] - algo.window_size):min(size(first_pyr[i])[1], point[1] + algo.window_size), max(1,point[2] - algo.window_size):min(size(first_pyr[i])[2],point[2] + algo.window_size)]
+                if all(x->isa(x, Base.OneTo), indices(first_pyr[i]))
+                    grid = [max(1,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size), max(1,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop,point[2] + algo.window_size)]
+                else
+                    grid = [max(indices(first_pyr[i])[1].start,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size), max(indices(first_pyr[i])[2].start,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop,point[2] + algo.window_size)]
+                end
 
                 # Spatial Gradient Matrix
                 G = [sum(Ixx[grid...]) sum(Ixy[grid...])
@@ -157,8 +161,14 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
 end
 
 function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
-    if point[1] < 1 || point[2] < 1 || point[1] > size(img)[1] || point[2] > size(img)[2]
-        return false
+    if all(x->isa(x, Base.OneTo), indices(img))
+        if point[1] < 1 || point[2] < 1 || point[1] > indices(img)[1].stop || point[2] > indices(img)[2].stop
+            return false
+        end
+    else
+        if point[1] < indices(img)[1].start || point[2] < indices(img)[2].start || point[1] > indices(img)[1].stop || point[2] > indices(img)[2].stop
+            return false
+        end
     end
     return true
 end
@@ -194,7 +204,11 @@ function lies_in(area::Array{UnitRange{Int64},1}, point::SVector{2, T}) where T 
 end
 
 function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, point::SVector{2, U}, diff_flow::SVector{2, Float64}, window_size::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
-    allowed_area = [map(i -> 1+window_size:i-window_size, size(img))...]
+        allowed_area = [map(i -> 1+window_size:i.stop-window_size, indices(img))...]
+        if all(x->isa(x, Base.OneTo), indices(img))
+    else
+        allowed_area = [map(i -> i.start+window_size:i.stop-window_size, indices(img))...]
+    end
 
     if !lies_in(allowed_area, point + diff_flow)
         new_point = point + diff_flow
@@ -202,8 +216,14 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
         grid_1 = Array{UnitRange{Int64}, 1}(2)
         grid_2 = Array{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, 1}(2)
 
-        x21 = clamp(new_point[2]-window_size, 1, size(img)[2])
-        x22 = clamp(new_point[2]+window_size, 1, size(img)[2])
+        if all(x->isa(x, Base.OneTo), indices(img))
+            x21 = clamp(new_point[2]-window_size, 1, indices(img)[2].stop)
+            x22 = clamp(new_point[2]+window_size, 1, indices(img)[2].stop)
+        else
+            x21 = clamp(new_point[2]-window_size, indices(img)[2].start, indices(img)[2].stop)
+            x22 = clamp(new_point[2]+window_size, indices(img)[2].start, indices(img)[2].stop)
+        end
+
         #TODO: Handle case for upper bound
         if x21 == 1
             x22 = ceil(x22)
@@ -219,8 +239,14 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
             x11 = 1
         end
 
-        y21 = clamp(new_point[1]-window_size, 1, size(img)[1])
-        y22 = clamp(new_point[1]+window_size, 1, size(img)[1])
+        if all(x->isa(x, Base.OneTo), indices(img))
+            y21 = clamp(new_point[1]-window_size, 1, indices(img)[1].stop)
+            y22 = clamp(new_point[1]+window_size, 1, indices(img)[1].stop)
+        else
+            y21 = clamp(new_point[1]-window_size, indices(img)[1].start, indices(img)[1].stop)
+            y22 = clamp(new_point[1]+window_size, indices(img)[1].start, indices(img)[1].stop)
+        end
+
         if y21 == 1
             y22 = ceil(y22)
             y11 = Int(y21)
