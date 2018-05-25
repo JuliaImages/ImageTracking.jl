@@ -1,14 +1,14 @@
-using Images, TestImages, StaticArrays, CoordinateTransformations
+using Images, TestImages, StaticArrays, OffsetArrays
 
 # Testing constants
 test_image = "mandrill"
 number_test_pts = 500
-precision = 0.3
+difference = 0.3
 max_error_points_percentage = 10
 max_allowed_error = 0.1
 max_lost_points_percentage = 40
 
-function test_lk(number_test_pts::Int64, flow::Array{SVector{2, Float64}, 1}, x_flow::Float64, y_flow::Float64, status::BitArray{1}, err::Array{Float64, 1}, precision::Float64)
+function test_lk(number_test_pts::Int64, flow::Array{SVector{2, Float64}, 1}, x_flow::Float64, y_flow::Float64, status::BitArray{1}, err::Array{Float64, 1}, difference::Float64)
     #Testing parameters
     error_pts = 0
     max_err = 0
@@ -17,7 +17,7 @@ function test_lk(number_test_pts::Int64, flow::Array{SVector{2, Float64}, 1}, x_
 
     for i = 1:number_test_pts
         if status[i]
-            if abs(flow[i][2] - x_flow) > precision || abs(flow[i][1] - y_flow) > precision
+            if abs(flow[i][2] - x_flow) > difference || abs(flow[i][1] - y_flow) > difference
                 error_pts += 1
             end
             if err[i] > max_err
@@ -34,7 +34,7 @@ end
 @testset "lucas-kanade" begin
 
     #Basic translations (Horizontal)
-    img1 = Gray.(testimage(test_image))
+    img1 = Gray{Float64}.(testimage(test_image))
     img2 = similar(img1)
     for i = 1:size(img1)[1]
         for j = 4:size(img1)[2]
@@ -46,12 +46,12 @@ end
     y, x = findn(corners)
     a = map((yi, xi) -> SVector{2}(yi, xi), y, x)
 
-    srand(1234)
+    srand(9876)
     pts = rand(a, (number_test_pts,))
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 
-    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 3.0, 0.0, status, err, precision)
+    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 3.0, 0.0, status, err, difference)
 
     println("Horizontal Motion")
     println("Error Points Percentage = ", (error_pts/length(pts))*100)
@@ -63,11 +63,11 @@ end
 
 
     # Basic translations (Vertical)
-    img2 = warp(img1, Translation(-3.0,0.0))
+    img2 = OffsetArray(img1, 3, 0)
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 
-    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 0.0, 3.0, status, err, precision)
+    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 0.0, 3.0, status, err, difference)
 
     println("Vertical Motion")
     println("Error Points Percentage = ", (error_pts/length(pts))*100)
@@ -79,11 +79,11 @@ end
 
 
     # Basic translations (Both)
-    img2 = warp(img1, Translation(-3.0,-1.0))
+    img2 = OffsetArray(img1, 3, 1)
 
     flow, status, err = optical_flow(img1, img2, LK(pts, [SVector{2}(0.0,0.0)], 11, 4, false, 20))
 
-    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 1.0, 3.0, status, err, precision)
+    error_pts, max_err, total_err, lost_points = test_lk(number_test_pts, flow, 1.0, 3.0, status, err, difference)
 
     println("Combined Motion")
     println("Error Points Percentage = ", (error_pts/length(pts))*100)
