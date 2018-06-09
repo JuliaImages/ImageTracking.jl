@@ -1,5 +1,22 @@
+__precompile__()
+
 module ImageTracking
 
-# package code goes here
+using Images
+using ImageFiltering
+using Interpolations
+using StaticArrays
 
-end # module
+include("haar.jl")
+
+export
+
+	# main functions
+
+	# other functions
+	haar_coordinates,
+	haar_features,
+
+	# optical flow algorithms
+
+end
