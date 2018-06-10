@@ -78,4 +78,13 @@ using Images, StaticArrays
     correct_features = [0,1,0]
     @test test_features == correct_features
 
+    # Tests for error checks
+
+    @test_throws ArgumentError haar_features(int_img, [1,1,1], [5,5], :x3)
+    @test_throws ArgumentError haar_features(int_img, [7,1], [5,5], :x3)
+    @test_throws ArgumentError haar_features(int_img, [1,7], [5,5], :x3)
+    @test_throws ArgumentError haar_features(int_img, [1,1], [5,5], :x4)
+
+    #No feature coordinates found case
+    @test length(haar_features(int_img, [1,1], [1,5], :x2)) == 0
 end

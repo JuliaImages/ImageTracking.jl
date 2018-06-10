@@ -144,6 +144,7 @@ function check_coordinates(top_left::Array{I, 1}, bottom_right::Array{I, 1}) whe
 end
 
 function check_feature_type(feat::Symbol)
+    nrect = 0
     if feat == :x2 || feat == :y2
         nrect = 2
     elseif feat == :x3 || feat == :y3
@@ -152,7 +153,6 @@ function check_feature_type(feat::Symbol)
         nrect = 4
     else
         throw(ArgumentError("The type of the feature must be either :x2, :y2, :x3, :y3 or :xy4."))
-        nrect = 0
     end
 
     return nrect
