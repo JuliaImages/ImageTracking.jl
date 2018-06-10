@@ -15,7 +15,7 @@ export
 
 	# other functions
 	haar_coordinates,
-	haar_features,
+	haar_features
 
 	# optical flow algorithms
 
