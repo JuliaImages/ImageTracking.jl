@@ -32,9 +32,12 @@ M. Oren, C. Papageorgiou, P. Sinha, E. Osuna and T. Poggio, "Pedestrian detectio
 P. Viola and M. Jones, "Rapid object detection using a boosted cascade of simple features," Proceedings of the 2001 IEEE Computer Society Conference on Computer Vision and Pattern Recognition. CVPR 2001, 2001, pp. I-511-I-518 vol.1.
 
 """
-function haar_features(img::AbstractArray{T, 2}, top_left::SVector{2, I}, bottom_right::SVector{2, I}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
+function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_right::Array{I, 1}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
+    check_coordinates(top_left, bottom_right)
+    nrect = check_feature_type(feat)
+
     if coordinates == nothing
-        rectangle_features = haar_coordinates(bottom_right[1] - top_left[1], bottom_right[2] - top_left[2], feat)
+        rectangle_features = haar_coordinates(bottom_right[1] - top_left[1] + 1, bottom_right[2] - top_left[2] + 1, feat)
     else
         a = Array{SVector{4,Int}}(nrect)
         for i = 1:nrect
@@ -50,8 +53,14 @@ function haar_features(img::AbstractArray{T, 2}, top_left::SVector{2, I}, bottom
         end
         deleteat!(rectangle_features, 1)
     end
-    feats = length(rectangle_features)
-    rects = length(rectangle_features[1])
+    if length(rectangle_features) > 0
+        feats = length(rectangle_features)
+        rects = length(rectangle_features[1])
+    else
+        println("No features of given type found in region!")
+        feats = 0
+        rects = 0
+    end
 
     features = zeros(T, feats, rects)
     for i = 1:feats
@@ -60,7 +69,7 @@ function haar_features(img::AbstractArray{T, 2}, top_left::SVector{2, I}, bottom
         end
     end
 
-    output = sum(features[:, 2:2:end], 2) - sum(features[:, 1:2:end], 2)
+    output = (sum(features[:, 2:2:end], 2) - sum(features[:, 1:2:end], 2))[:]
 end
 
 """
@@ -87,16 +96,8 @@ Parameters:
 ```
 
 """
-function haar_coordinates(height::Int, width::Int, feat::Symbol)
-    if feat == :x2 || feat == :y2
-        nrect = 2
-    elseif feat == :x3 || feat == :y3
-        nrect = 3
-    elseif feat == :xy4
-        nrect = 4
-    else
-        throw(ArgumentError("The type of the feature must be either :x2, :y2, :x3, :y3 or :xy4."))
-    end
+function haar_coordinates(h::Int, w::Int, feat::Symbol)
+    nrect = check_feature_type(feat)
 
     a = Array{SVector{4,Int}}(nrect)
     for i = 1:nrect
@@ -104,19 +105,19 @@ function haar_coordinates(height::Int, width::Int, feat::Symbol)
     end
     rectangle_features = Array([a])
 
-    for I = 1:height
-        for J = 1:width
-            for i = 2:height
-                for j = 2:width
-                    if feat == :x2 && I + i - 2 <= height && J + 2*j - 3 <= width
+    for I = 1:h
+        for J = 1:w
+            for i = 2:h
+                for j = 2:w
+                    if feat == :x2 && I + i - 2 <= h && J + 2*j - 3 <= w
                         push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3)])
-                    elseif feat == :y2 && I + 2*i - 3 <= height && J + j - 2 <= width
+                    elseif feat == :y2 && I + 2*i - 3 <= h && J + j - 2 <= w
                         push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2)])
-                    elseif feat == :x3 && I + i - 2 <= height && J + 3*j - 4 <= width
+                    elseif feat == :x3 && I + i - 2 <= h && J + 3*j - 4 <= w
                         push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3), SVector{4}(I, J + 2*j - 2, I + i - 2, J + 3*j - 4)])
-                    elseif feat == :y3 && I + 3*i - 4 <= height && J + j  - 2 <= width
+                    elseif feat == :y3 && I + 3*i - 4 <= h && J + j  - 2 <= w
                         push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2), SVector{4}(I + 2*i - 2, J, I + 3*i - 4, J + j - 2)])
-                    elseif feat == :xy4 && I + 2*i - 3 <= height && J + 2*j - 3 <= width
+                    elseif feat == :xy4 && I + 2*i - 3 <= h && J + 2*j - 3 <= w
                         push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3), SVector{4}(I + i - 1, J + j - 1, I + 2*i - 3, J + 2*j - 3), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2)])
                     end
                 end
@@ -126,4 +127,33 @@ function haar_coordinates(height::Int, width::Int, feat::Symbol)
     deleteat!(rectangle_features, 1)
 
     return rectangle_features
+end
+
+function check_coordinates(top_left::Array{I, 1}, bottom_right::Array{I, 1}) where I <: Int
+    if length(top_left) != 2 || length(bottom_right) != 2
+        throw(ArgumentError("The top_left and bottom_right point must have only 2 coordinates."))
+    end
+
+    if bottom_right[1] < top_left[1]
+        throw(ArgumentError("The bottom_right point must be lower than the top_left point."))
+    end
+
+    if bottom_right[2] < top_left[2]
+        throw(ArgumentError("The bottom_right point must be towards the right of the top_left point."))
+    end
+end
+
+function check_feature_type(feat::Symbol)
+    if feat == :x2 || feat == :y2
+        nrect = 2
+    elseif feat == :x3 || feat == :y3
+        nrect = 3
+    elseif feat == :xy4
+        nrect = 4
+    else
+        throw(ArgumentError("The type of the feature must be either :x2, :y2, :x3, :y3 or :xy4."))
+        nrect = 0
+    end
+
+    return nrect
 end
