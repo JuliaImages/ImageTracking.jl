@@ -32,7 +32,7 @@ J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas kanadefeature tr
 algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
 
-struct LK{T <: Int64, F <: Float64, V <: Bool} <: OpticalFlowAlgo
+struct LK{T <: Int, F <: Float64, V <: Bool} <: OpticalFlowAlgo
     prev_points::Array{SVector{2, T}, 1}
     next_points::Array{SVector{2, F}, 1}
     window_size::T
@@ -42,11 +42,11 @@ struct LK{T <: Int64, F <: Float64, V <: Bool} <: OpticalFlowAlgo
     min_eigen_thresh::F
 end
 
-LK(prev_points::Array{SVector{2, T}, 1}, next_points::Array{SVector{2, F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int64, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.000001)
+LK(prev_points::Array{SVector{2, T}, 1}, next_points::Array{SVector{2, F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.000001)
 
 function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::LK{}) where T <: Gray
     if algo.estimate_flag
-        @assert size(prev_points) == size(next_points)
+        @assert size(algo.prev_points) == size(algo.next_points)
     end
 
     # Construct gaussian pyramid for both the images
@@ -160,7 +160,7 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     return output_flow, status_array, error_array
 end
 
-function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
+function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int) where {T <: Gray, U <: Union{Int, Float64}}
     if all(x->isa(x, Base.OneTo), indices(img))
         if point[1] < 1 || point[2] < 1 || point[1] > indices(img)[1].stop || point[2] > indices(img)[2].stop
             return false
@@ -173,7 +173,7 @@ function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64)
     return true
 end
 
-function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Float64, min_eigen_thresh::Float64, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
+function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Float64, min_eigen_thresh::Float64, window::Int) where {T <: Gray, U <: Union{Int, Float64}}
     if !(in_image(img, point, window))
         return true
     else
@@ -187,7 +187,7 @@ function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Floa
     end
 end
 
-function is_lost(point::SVector{2, Float64}, window_size::Int64)
+function is_lost(point::SVector{2, Float64}, window_size::Int)
     if point[1] > window_size || point[2] > window_size
         return true
     else
@@ -195,7 +195,7 @@ function is_lost(point::SVector{2, Float64}, window_size::Int64)
     end
 end
 
-function lies_in(area::Array{UnitRange{Int64},1}, point::SVector{2, T}) where T <: Union{Int64,Float64}
+function lies_in(area::Array{UnitRange{Int},1}, point::SVector{2, T}) where T <: Union{Int,Float64}
     if area[1].start <= point[1] && area[1].stop >= point[1] && area[2].start <= point[2] && area[2].stop >= point[2]
         return true
     else
@@ -203,7 +203,7 @@ function lies_in(area::Array{UnitRange{Int64},1}, point::SVector{2, T}) where T 
     end
 end
 
-function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, point::SVector{2, U}, diff_flow::SVector{2, Float64}, window_size::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
+function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int}, 1}, point::SVector{2, U}, diff_flow::SVector{2, Float64}, window_size::Int) where {T <: Gray, U <: Union{Int, Float64}}
         allowed_area = [map(i -> 1+window_size:i.stop-window_size, indices(img))...]
         if all(x->isa(x, Base.OneTo), indices(img))
     else
@@ -213,7 +213,7 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
     if !lies_in(allowed_area, point + diff_flow)
         new_point = point + diff_flow
 
-        grid_1 = Array{UnitRange{Int64}, 1}(2)
+        grid_1 = Array{UnitRange{Int}, 1}(2)
         grid_2 = Array{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, 1}(2)
 
         if all(x->isa(x, Base.OneTo), indices(img))
@@ -227,8 +227,8 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
         #TODO: Handle case for upper bound
         if x21 == 1
             x22 = ceil(x22)
-            x11 = convert(Int64, x21)
-            x12 = convert(Int64, x22)
+            x11 = convert(Int, x21)
+            x12 = convert(Int, x22)
         else
             x11 = point[2] - window_size
             x12 = point[2] + window_size
