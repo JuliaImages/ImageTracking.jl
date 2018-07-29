@@ -1,4 +1,4 @@
-using Images, TestImages, StaticArrays, OffsetArrays, JLD
+using Images, TestImages, StaticArrays, OffsetArrays, FileIO, JLD2
 
 # Testing constants
 test_image = "mandrill"
@@ -103,8 +103,8 @@ end
     a = map((yi, xi) -> SVector{2}(yi, xi), y, x)
 
     flow, status, err = optical_flow(img1, img2, LK(a, [SVector{2}(0.0,0.0)], 25, 4, false, 20))
-   
-    correct_flow = load("test_data/yosemite/flow/yosemite_correct_flow.jld", "yosemite_correct_flow")
+
+    correct_flow = load("test_data/yosemite/flow/yosemite_correct_flow.jld2", "yosemite_correct_flow")
 
     error_pts = 0
     lost_points = 0
