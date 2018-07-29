@@ -3,3 +3,5 @@ TestImages 0.2.0
 @windows ImageMagick
 @linux ImageMagick
 @osx QuartzImageIO
+FileIO
+JLD2
