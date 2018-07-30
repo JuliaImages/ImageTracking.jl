@@ -18,6 +18,7 @@ export
 	polynomial_expansion,
 
 	# optical flow algorithms
+	LK,
 	Farneback
 
 end
