@@ -6,6 +6,12 @@ features = haar_features(img, top_left, bottom_right, feat, coordinates)
 
 Returns an array containing the Haar-like features for the given Integral Image in the region specified by the points top_left and bottom_right.
 
+The caller of the haar_features function specifies a rectangular region in the image by its top_left and bottom_right points and a particular
+feature type, e.g. two rectangles side by side (:x2). This function then computes the values of all haar rectangular features for the particular
+rectangle configuration for all possible locations, and all possible rectangle widths & heights if coordinates of certain specific features are not
+provided. If they are provided then it only computes the values of those features whose coordinates are given. Calculating value of haar rectangular
+feature corresponds to finding the difference of sums of all points in the different rectangles comprising the feature.
+
 Parameters:
 
  -  img               = The Integral Image for which the Haar-like features are to be found
@@ -17,10 +23,142 @@ Parameters:
     Currently, feat can take 5 values:
 
     :x2 = Two rectangles along horizontal axis
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+                         |
+        | |     |     |                         |
+        | | -1  | +1  |  +---------->           |
+        | |     |     |                         |
+        | +-----+-----+                         |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :y2 = Two rectangles along vertical axis
+        +---------------------------------------+
+        |                                       |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+  +---------->          |
+        | |     +1     |                        |
+        | +------------+                        |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :x3 = Three rectangles along horizontal axis
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+-----+                   |
+        | |     |     |     |                   |
+        | | -1  | +1  | -1  |  +---------->     |
+        | |     |     |     |                   |
+        | +-----+-----+-----+                   |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :y3 = Three rectangles along vertical axis
+        +---------------------------------------+
+        |                                       |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+                        |
+        | |     +1     |  +---------->          |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+                        |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :xy4 = Four rectangles along horizontal and vertical axes
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+                         |
+        | |     |     |                         |
+        | | -1  | +1  |                         |
+        | |     |     |                         |
+        | +-----+-----+  +---------->           |
+        | |     |     |                         |
+        | | +1  | -1  |                         |
+        | |     |     |                         |
+        | +-----+-----+                         |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
+    The +1 and -1 signs show which rectangles are subtracted and which are added to evaluate the final haar feature.
+
 ```
 
  -  coordinates       = The user can provide the coordinates of the rectangles if only certain Haar-like features are to found in the given region. The required format is a 3 Dimensional array as (f,r,4) where f = number_of_features, r = number_of_rectangles and 4 is for the coordinates of the top_left and bottom_right point of the rectangle (top_left_y, top_left_x, bottom_right_y, bottom_right_x). The default value is nothing, where all the features are found
@@ -79,6 +217,10 @@ coordinates = haar_coordinates(height, width, feat)
 
 Returns an array containing the coordinates of the Haar-like features of the specified type.
 
+The caller of the haar_coordinates function specifies a rectangular region in the image by its height and width and a particular
+feature type, e.g. two rectangles side by side (:x2). This function then computes the coordinates for the particular rectangle configuration
+for all possible locations, and all possible rectangle widths & heights.
+
 Parameters:
 
  -  height        = Height of the neighbourhood/window where the coordinates are computed
@@ -89,10 +231,142 @@ Parameters:
     Currently, feat can take 5 values:
 
     :x2 = Two rectangles along horizontal axis
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+                         |
+        | |     |     |                         |
+        | | -1  | +1  |  +---------->           |
+        | |     |     |                         |
+        | +-----+-----+                         |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :y2 = Two rectangles along vertical axis
+        +---------------------------------------+
+        |                                       |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+  +---------->          |
+        | |     +1     |                        |
+        | +------------+                        |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :x3 = Three rectangles along horizontal axis
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+-----+                   |
+        | |     |     |     |                   |
+        | | -1  | +1  | -1  |  +---------->     |
+        | |     |     |     |                   |
+        | +-----+-----+-----+                   |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :y3 = Three rectangles along vertical axis
+        +---------------------------------------+
+        |                                       |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+                        |
+        | |     +1     |  +---------->          |
+        | +------------+                        |
+        | |     -1     |                        |
+        | +------------+                        |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
     :xy4 = Four rectangles along horizontal and vertical axes
+        +---------------------------------------+
+        |                                       |
+        | +-----+-----+                         |
+        | |     |     |                         |
+        | | -1  | +1  |                         |
+        | |     |     |                         |
+        | +-----+-----+  +---------->           |
+        | |     |     |                         |
+        | | +1  | -1  |                         |
+        | |     |     |                         |
+        | +-----+-----+                         |
+        |                                       |
+        |       +                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       |                               |
+        |       v                               |
+        |                                       |
+        |                                       |
+        +---------------------------------------+
+
+    The +1 and -1 signs show which rectangles are subtracted and which are added to evaluate the final haar feature.
+
 ```
 
 """
