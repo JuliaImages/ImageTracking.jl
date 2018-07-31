@@ -39,7 +39,7 @@ Sweden, SE-581 83 Linköping, Sweden (2002) Dissertation No 790, ISBN 91-7373-47
 
 """
 
-struct Farneback{F <: Float64, I <: Int64, V <: Bool} <: OpticalFlowAlgo
+struct Farneback{F <: Float64, I <: Int, V <: Bool} <: OpticalFlowAlgo
     flow_est::Array{SVector{2, F}, 2}
     iterations::I
     window_size::I
@@ -50,7 +50,7 @@ struct Farneback{F <: Float64, I <: Int64, V <: Bool} <: OpticalFlowAlgo
     gauss_flag::V
 end
 
-Farneback(flow_est::Array{SVector{2, F}, 2}, iterations::I, window_size::I, σw::F, neighbourhood::I, σp::F, est_flag::V) where {F <: Float64, I <: Int64, V <: Bool} = LK{F, I, V}(flow_est, iterations, window_size, σw, neighbourhood, σp, est_flag, true)
+Farneback(flow_est::Array{SVector{2, F}, 2}, iterations::I, window_size::I, σw::F, neighbourhood::I, σp::F, est_flag::V) where {F <: Float64, I <: Int, V <: Bool} = LK{F, I, V}(flow_est, iterations, window_size, σw, neighbourhood, σp, est_flag, true)
 
 function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::Farneback{}) where T <: Gray
     if algo.est_flag
