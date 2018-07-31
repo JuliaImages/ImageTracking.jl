@@ -32,7 +32,7 @@ J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas kanadefeature tr
 algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
 
-struct LK{T <: Int64, F <: Float64, V <: Bool} <: OpticalFlowAlgo
+struct LK{T <: Int, F <: Float64, V <: Bool} <: OpticalFlowAlgo
     prev_points::Array{SVector{2, T}, 1}
     next_points::Array{SVector{2, F}, 1}
     window_size::T
@@ -42,11 +42,11 @@ struct LK{T <: Int64, F <: Float64, V <: Bool} <: OpticalFlowAlgo
     min_eigen_thresh::F
 end
 
-LK(prev_points::Array{SVector{2, T}, 1}, next_points::Array{SVector{2, F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int64, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.000001)
+LK(prev_points::Array{SVector{2, T}, 1}, next_points::Array{SVector{2, F}, 1}, window_size::T, max_level::T, estimate_flag::V, term_condition::T) where {T <: Int, F <: Float64, V <: Bool} = LK{T, F, V}(prev_points, next_points, window_size, max_level, estimate_flag, term_condition, 0.000001)
 
 function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::LK{}) where T <: Gray
     if algo.estimate_flag
-        @assert size(prev_points) == size(next_points)
+        @assert size(algo.prev_points) == size(algo.next_points)
     end
 
     # Construct gaussian pyramid for both the images
@@ -54,18 +54,18 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     second_pyr = gaussian_pyramid(second_img, algo.max_level, 2, 1.0)
 
     # Initilisation of the output arrays
-    guess_flow = Array{MVector{2, Float64}, 1}(length(algo.prev_points))
-    final_flow = Array{MVector{2, Float64}, 1}(length(algo.prev_points))
+    guess_flow = Array{SVector{2, Float64}, 1}(length(algo.prev_points))
+    final_flow = Array{SVector{2, Float64}, 1}(length(algo.prev_points))
     status_array = trues(size(algo.prev_points))
     error_array = zeros(Float64, size(algo.prev_points))
 
     for i = 1:length(algo.prev_points)
         if algo.estimate_flag
-            guess_flow[i] = MVector{2}((algo.next_points[i][1] - algo.prev_points[i][1])/2^algo.max_level,(algo.next_points[i][2] - algo.prev_points[i][2])/2^algo.max_level)
+            guess_flow[i] = SVector{2}((algo.next_points[i][1] - algo.prev_points[i][1])/2^algo.max_level,(algo.next_points[i][2] - algo.prev_points[i][2])/2^algo.max_level)
         else
-            guess_flow[i] = MVector{2}(0.0,0.0)
+            guess_flow[i] = SVector{2}(0.0,0.0)
         end
-        final_flow[i] = MVector{2}(0.0,0.0)
+        final_flow[i] = SVector{2}(0.0,0.0)
     end
     min_eigen = 0.0
     grid_size = 0
@@ -89,20 +89,23 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
 
             # Check if point is lost
             if status_array[j]
-                # Position of point in current pyramid level
-                point = MVector{2}(floor(Int,(algo.prev_points[j][1])/2^i),floor(Int,(algo.prev_points[j][2])/2^i))
+                # # Position of point in current pyramid level
+                point = SVector{2}(floor(Int,(algo.prev_points[j][1])/2^i),floor(Int,(algo.prev_points[j][2])/2^i))
                 # Bounds for the search window
                 if all(x->isa(x, Base.OneTo), indices(first_pyr[i]))
-                    grid = [max(1,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size), max(1,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop,point[2] + algo.window_size)]
+                    rs = max(1,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size)
+                    cs = max(1,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop,point[2] + algo.window_size)
+                    grid = SVector{2}( rs, cs )
                 else
-                    grid = [max(indices(first_pyr[i])[1].start,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size), max(indices(first_pyr[i])[2].start,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop,point[2] + algo.window_size)]
+                    rs = max(indices(first_pyr[i])[1].start,point[1] - algo.window_size):min(indices(first_pyr[i])[1].stop, point[1] + algo.window_size)
+                    cs = max(indices(first_pyr[i])[2].start,point[2] - algo.window_size):min(indices(first_pyr[i])[2].stop, point[2] + algo.window_size)
+                    grid = SVector{2}( rs, cs )
                 end
 
                 # Spatial Gradient Matrix
-                G = [sum(Ixx[grid...]) sum(Ixy[grid...])
-                     sum(Ixy[grid...]) sum(Iyy[grid...])]
+                G = SMatrix{2,2,Float64}(sum(Ixx[grid[1],grid[2]]),sum(Ixy[grid[1],grid[2]]), sum(Ixy[grid[1],grid[2]]), sum(Iyy[grid[1],grid[2]]) )
 
-                temp_flow = MVector{2}(0.0,0.0)
+                temp_flow = SVector{2}(0.0,0.0)
 
                 # Iterating till terminating condition
                 for k = 1:algo.term_condition
@@ -111,32 +114,51 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
 
                     # Check if the search window is present completely in the image
                     grid_1, grid_2, flag = get_grid(first_pyr[i], grid, SVector{2}(point), diff_flow, algo.window_size)
-
                     # Calculate the flow
-                    δI = first_pyr[i][grid_1...] .- etp[grid_2...]
-                    I_x = Ix[grid_1...]
-                    I_y = Iy[grid_1...]
-                    bk = [sum(δI.*I_x)
-                          sum(δI.*I_y)]
+                    A = @view first_pyr[i][grid_1[1],grid_1[2]]
+                    B = @view etp[grid_2[1],grid_2[2]]
+                    I_x = @view Ix[grid_1[1],grid_1[2]]
+                    I_y = @view Iy[grid_1[1],grid_1[2]]
+                    bx = 0.0
+                    by = 0.0
+                    P, Q = size(A)
+                    # Evaluates sum(δI.*I_x) and sum(δI.*I_y) where δI = A .- B
+                    @inbounds begin
+                        for q = 1:Q
+                           for p = 1:P
+                                bx = bx + (A[p,q] - B[p,q])*I_x[p,q]
+                                by = by + (A[p,q] - B[p,q])*I_y[p,q]
+                            end
+                        end
+                    end
+                    bk = SVector{2}(bx, by)
+
 
                     if !flag
-                        G = [sum(Ixx[grid_1...]) sum(Ixy[grid_1...])
-                             sum(Ixy[grid_1...]) sum(Iyy[grid_1...])]
+                        G = SMatrix{2,2,Float64}(sum(Ixx[grid_1[1],grid_1[2]]),
+                                         sum(Ixy[grid_1[1],grid_1[2]]),
+                                         sum(Ixy[grid_1[1],grid_1[2]]),
+                                         sum(Iyy[grid_1[1],grid_1[2]]))
                     end
 
-                    G_inv = pinv(G)
+
+                    # Use a custom Moore-Pensore inverse for a 2-by-2 matrix
+                    # because the default  pinv(Array(G)) allocates memory.
+                    # TODO: Add the pinv2x2 method to the StaticArrays package.
+                    G_inv = pinv2x2(G)
                     ηk = G_inv*bk
                     temp_flow = ηk + temp_flow
 
                     # Minimum eigenvalue in the matrix is used as the error function
-                    min_eigen = eigmin(G)
+                    D, V =  eig(G)
+                    min_eigen = D[1] < D[2] ? D[1] : D[2]
                     grid_size = (grid_1[1].stop - grid_1[1].start + 1) * (grid_1[2].stop - grid_1[2].start + 1)
                     error_array[j] = min_eigen/grid_size
 
                     # Check whether point is lost
                     if is_lost(first_pyr[i], SVector{2}(point + temp_flow), min_eigen, algo.min_eigen_thresh, grid_size)
                         status_array[j] = false
-                        final_flow[j] = MVector{2}(0.0,0.0)
+                        final_flow[j] = SVector{2}(0.0,0.0)
                         break
                     end
                 end
@@ -150,7 +172,7 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                 # Declare point lost if very high displacement
                 if is_lost(SVector(0.5*guess_flow[j]), 2*algo.window_size)
                     status_array[j] = false
-                    final_flow[j] = MVector{2}(0.0,0.0)
+                    final_flow[j] = SVector{2}(0.0,0.0)
                 end
             end
         end
@@ -160,7 +182,7 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     return output_flow, status_array, error_array
 end
 
-function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
+function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int) where {T <: Gray, U <: Union{Int, Float64}}
     if all(x->isa(x, Base.OneTo), indices(img))
         if point[1] < 1 || point[2] < 1 || point[1] > indices(img)[1].stop || point[2] > indices(img)[2].stop
             return false
@@ -173,7 +195,7 @@ function in_image(img::AbstractArray{T, 2}, point::SVector{2, U}, window::Int64)
     return true
 end
 
-function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Float64, min_eigen_thresh::Float64, window::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
+function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Float64, min_eigen_thresh::Float64, window::Int) where {T <: Gray, U <: Union{Int, Float64}}
     if !(in_image(img, point, window))
         return true
     else
@@ -187,7 +209,7 @@ function is_lost(img::AbstractArray{T, 2}, point::SVector{2, U}, min_eigen::Floa
     end
 end
 
-function is_lost(point::SVector{2, Float64}, window_size::Int64)
+function is_lost(point::SVector{2, Float64}, window_size::Int)
     if point[1] > window_size || point[2] > window_size
         return true
     else
@@ -195,7 +217,7 @@ function is_lost(point::SVector{2, Float64}, window_size::Int64)
     end
 end
 
-function lies_in(area::Array{UnitRange{Int64},1}, point::SVector{2, T}) where T <: Union{Int64,Float64}
+function lies_in(area::Tuple{UnitRange{Int64},UnitRange{Int64}}, point::SVector{2, T}) where T <: Union{Int,Float64}
     if area[1].start <= point[1] && area[1].stop >= point[1] && area[2].start <= point[2] && area[2].stop >= point[2]
         return true
     else
@@ -203,18 +225,16 @@ function lies_in(area::Array{UnitRange{Int64},1}, point::SVector{2, T}) where T 
     end
 end
 
-function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, point::SVector{2, U}, diff_flow::SVector{2, Float64}, window_size::Int64) where {T <: Gray, U <: Union{Int64, Float64}}
-        allowed_area = [map(i -> 1+window_size:i.stop-window_size, indices(img))...]
-        if all(x->isa(x, Base.OneTo), indices(img))
+function get_grid(img::AbstractArray{T, 2}, grid::AbstractArray{UnitRange{Int}, 1}, point::SVector{2, U}, diff_flow::SVector{2, Float64}, window_size::Int) where {T <: Gray, U <: Union{Int, Float64}}
+
+    if all(x->isa(x, Base.OneTo), indices(img))
+        allowed_area = map(i -> 1+window_size:i.stop-window_size, indices(img))
     else
-        allowed_area = [map(i -> i.start+window_size:i.stop-window_size, indices(img))...]
+        allowed_area = map(i -> i.start+window_size:i.stop-window_size, indices(img))
     end
 
     if !lies_in(allowed_area, point + diff_flow)
         new_point = point + diff_flow
-
-        grid_1 = Array{UnitRange{Int64}, 1}(2)
-        grid_2 = Array{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, 1}(2)
 
         if all(x->isa(x, Base.OneTo), indices(img))
             x21 = clamp(new_point[2]-window_size, 1, indices(img)[2].stop)
@@ -227,8 +247,8 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
         #TODO: Handle case for upper bound
         if x21 == 1
             x22 = ceil(x22)
-            x11 = convert(Int64, x21)
-            x12 = convert(Int64, x22)
+            x11 = convert(Int, x21)
+            x12 = convert(Int, x22)
         else
             x11 = point[2] - window_size
             x12 = point[2] + window_size
@@ -261,13 +281,47 @@ function get_grid(img::AbstractArray{T, 2}, grid::Array{UnitRange{Int64}, 1}, po
             y11 = 1
         end
 
-        grid_1 = [y11:y12,x11:x12]
-        grid_2 = [y21:y22,x21:x22]
+        grid_1 = SVector{2}(y11:y12, x11:x12)
+        grid_2 = SVector{2}(y21:y22, x21:x22)
         flag = false
+
     else
-        grid_1 = grid
-        grid_2 = grid + diff_flow
-        flag = true
+         grid_1 = grid
+         grid_2 = grid + diff_flow
+         flag = true
     end
     return grid_1, grid_2, flag
+end
+
+# Computes the SVD of a 2-by-2 matrix M, returning U, S, and V such that A == U*S*V'.
+# Reference:
+# Blinn, J. (1996). Consider the lowly 2 x 2 matrix. IEEE Computer Graphics and Applications, 16(2), 82-88.
+# https://scicomp.stackexchange.com/questions/8899/robust-algorithm-for-2-times-2-svd
+function svd2x2(M::AbstractArray)
+    E = (M[1,1] + M[2,2]) / 2
+    F = (M[1,1] - M[2,2]) / 2
+    G = (M[2,1] + M[1,2]) / 2
+    H = (M[2,1] - M[1,2]) / 2
+    Q = sqrt(E^2 +H^2)
+    R = sqrt(F^2 + G^2)
+    sx = Q + R
+    sy = Q - R
+    a₁ = atan2(G,F)
+    a₂ = atan2(H,E)
+    θ = (a₂ - a₁) / 2
+    ϕ = (a₂ + a₁) / 2
+    s = sign(sy)
+    U = SMatrix{2,2,Float64}(cos(ϕ), sin(ϕ), -s*sin(ϕ), s*cos(ϕ))
+    S = SMatrix{2,2,Float64}(sx, 0.0, 0.0, abs(sy))
+    V = SMatrix{2,2,Float64}(cos(θ), -sin(θ), sin(θ), cos(θ))
+    U,S,V
+end
+
+#  Computes the Moore-Penrose pseudoinverse for a 2-by-2 matrix M by only inverting
+#  singular values above the threshold `tol = sqrt(eps(real(float(one(eltype(M))))))`
+function pinv2x2(M::AbstractArray)
+     tol = sqrt(eps(real(float(one(eltype(M))))))
+     U,S,V = svd2x2(M)
+     D = SMatrix{2,2,Float64}( S[1,1] > tol ?  1/S[1,1] : 0.0 , 0.0, 0.0, S[2,2] > tol ?  1/S[2,2] : 0.0 )
+     U*D*V'
 end
