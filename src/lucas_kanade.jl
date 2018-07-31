@@ -217,7 +217,7 @@ function is_lost(point::SVector{2, Float64}, window_size::Int)
     end
 end
 
-function lies_in(area::Tuple{UnitRange{Int64},UnitRange{Int64}}, point::SVector{2, T}) where T <: Union{Int,Float64}
+function lies_in(area::Tuple{UnitRange{Int},UnitRange{Int}}, point::SVector{2, T}) where T <: Union{Int,Float64}
     if area[1].start <= point[1] && area[1].stop >= point[1] && area[2].start <= point[2] && area[2].stop >= point[2]
         return true
     else
