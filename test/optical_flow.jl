@@ -8,7 +8,7 @@ max_error_points_percentage = 10
 max_allowed_error = 0.1
 max_lost_points_percentage = 40
 
-function test_lk(number_test_pts::Int64, flow::Array{SVector{2, Float64}, 1}, x_flow::Float64, y_flow::Float64, status::BitArray{1}, err::Array{Float64, 1}, difference::Float64)
+function test_lk(number_test_pts::Int, flow::Array{SVector{2, Float64}, 1}, x_flow::Float64, y_flow::Float64, status::BitArray{1}, err::Array{Float64, 1}, difference::Float64)
     #Testing parameters
     error_pts = 0
     max_err = 0
