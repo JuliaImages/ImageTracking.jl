@@ -172,42 +172,32 @@ P. Viola and M. Jones, "Rapid object detection using a boosted cascade of simple
 """
 function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_right::Array{I, 1}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
     check_coordinates(top_left, bottom_right)
-    nrect = check_feature_type(feat)
+    rectangular_feature_coordinates = check_feature_type(feat)
 
     if coordinates == nothing
-        rectangle_features = haar_coordinates(bottom_right[1] - top_left[1] + 1, bottom_right[2] - top_left[2] + 1, feat)
+        rectangular_feature_coordinates = haar_coordinates(bottom_right[1] - top_left[1] + 1, bottom_right[2] - top_left[2] + 1, feat)
     else
-        a = Array{SVector{4,Int}}(nrect)
-        for i = 1:nrect
-            a[i] = SVector{4}(0,0,0,0)
-        end
-        rectangle_features = Array([a])
         for i = 1:size(coordinates)[1]
-            temp = []
-            for j = 1:size(coordinates)[2]
-                push!(temp, SVector{4}(coordinates[i,j,1], coordinates[i,j,2], coordinates[i,j,3], coordinates[i,j,4]))
-            end
-            push!(rectangle_features, temp)
+            push!(rectangular_feature_coordinates, SMatrix{size(coordinates)[2], 4}(coordinates[i, :, :]))
         end
-        deleteat!(rectangle_features, 1)
     end
-    if length(rectangle_features) > 0
-        feats = length(rectangle_features)
-        rects = length(rectangle_features[1])
+    if length(rectangular_feature_coordinates) > 0
+        num_feats = length(rectangular_feature_coordinates)
+        num_rects = size(rectangular_feature_coordinates[1])[1]
     else
         println("No features of given type found in region!")
-        feats = 0
-        rects = 0
+        num_feats = 0
+        num_rects = 0
     end
 
-    features = zeros(T, feats, rects)
-    for i = 1:feats
-        for j = 1:rects
-            features[i,j] = boxdiff(img, rectangle_features[i][j][1]:rectangle_features[i][j][3], rectangle_features[i][j][2]:rectangle_features[i][j][4])
+    rectangular_features = zeros(T, num_feats, num_rects)
+    for i = 1:num_feats
+        for j = 1:num_rects
+            rectangular_features[i,j] = boxdiff(img, (top_left[1] + rectangular_feature_coordinates[i][j, 1] - 1):(top_left[1] + rectangular_feature_coordinates[i][j, 3] - 1), (top_left[2] + rectangular_feature_coordinates[i][j, 2] - 1):(top_left[2] + rectangular_feature_coordinates[i][j, 4] - 1))
         end
     end
 
-    output = (sum(features[:, 2:2:end], 2) - sum(features[:, 1:2:end], 2))[:]
+    rectangular_feature_values = (sum(rectangular_features[:, 2:2:end], 2) - sum(rectangular_features[:, 1:2:end], 2))[:]
 end
 
 """
@@ -371,36 +361,29 @@ Parameters:
 
 """
 function haar_coordinates(h::Int, w::Int, feat::Symbol)
-    nrect = check_feature_type(feat)
-
-    a = Array{SVector{4,Int}}(nrect)
-    for i = 1:nrect
-        a[i] = SVector{4}(0,0,0,0)
-    end
-    rectangle_features = Array([a])
+    rectangular_feature_coordinates = check_feature_type(feat)
 
     for I = 1:h
         for J = 1:w
             for i = 2:h
                 for j = 2:w
                     if feat == :x2 && I + i - 2 <= h && J + 2*j - 3 <= w
-                        push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3)])
+                        push!(rectangular_feature_coordinates, (SMatrix{4, 2, Int}(I, J, I + i - 2, J + j - 2, I, J + j - 1, I + i - 2, J + 2*j - 3))')
                     elseif feat == :y2 && I + 2*i - 3 <= h && J + j - 2 <= w
-                        push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2)])
+                        push!(rectangular_feature_coordinates, (SMatrix{4, 2, Int}(I, J, I + i - 2, J + j - 2, I + i - 1, J, I + 2*i - 3, J + j - 2))')
                     elseif feat == :x3 && I + i - 2 <= h && J + 3*j - 4 <= w
-                        push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3), SVector{4}(I, J + 2*j - 2, I + i - 2, J + 3*j - 4)])
+                        push!(rectangular_feature_coordinates, (SMatrix{4, 3, Int}(I, J, I + i - 2, J + j - 2, I, J + j - 1, I + i - 2, J + 2*j - 3, I, J + 2*j - 2, I + i - 2, J + 3*j - 4))')
                     elseif feat == :y3 && I + 3*i - 4 <= h && J + j  - 2 <= w
-                        push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2), SVector{4}(I + 2*i - 2, J, I + 3*i - 4, J + j - 2)])
+                        push!(rectangular_feature_coordinates, (SMatrix{4, 3, Int}(I, J, I + i - 2, J + j - 2, I + i - 1, J, I + 2*i - 3, J + j - 2, I + 2*i - 2, J, I + 3*i - 4, J + j - 2))')
                     elseif feat == :xy4 && I + 2*i - 3 <= h && J + 2*j - 3 <= w
-                        push!(rectangle_features, [SVector{4}(I, J, I + i - 2, J + j - 2), SVector{4}(I, J + j - 1, I + i - 2, J + 2*j - 3), SVector{4}(I + i - 1, J + j - 1, I + 2*i - 3, J + 2*j - 3), SVector{4}(I + i - 1, J, I + 2*i - 3, J + j - 2)])
+                        push!(rectangular_feature_coordinates, (SMatrix{4, 4, Int}(I, J, I + i - 2, J + j - 2, I, J + j - 1, I + i - 2, J + 2*j - 3, I + i - 1, J + j - 1, I + 2*i - 3, J + 2*j - 3, I + i - 1, J, I + 2*i - 3, J + j - 2))')
                     end
                 end
             end
         end
     end
-    deleteat!(rectangle_features, 1)
 
-    return rectangle_features
+    return rectangular_feature_coordinates
 end
 
 function check_coordinates(top_left::Array{I, 1}, bottom_right::Array{I, 1}) where I <: Int
@@ -418,16 +401,15 @@ function check_coordinates(top_left::Array{I, 1}, bottom_right::Array{I, 1}) whe
 end
 
 function check_feature_type(feat::Symbol)
-    nrect = 0
     if feat == :x2 || feat == :y2
-        nrect = 2
+        rectangular_feature_coordinates = Vector{SMatrix{2, 4, Int}}()
     elseif feat == :x3 || feat == :y3
-        nrect = 3
+        rectangular_feature_coordinates = Vector{SMatrix{3, 4, Int}}()
     elseif feat == :xy4
-        nrect = 4
+        rectangular_feature_coordinates = Vector{SMatrix{4, 4, Int}}()
     else
         throw(ArgumentError("The type of the feature must be either :x2, :y2, :x3, :y3 or :xy4."))
     end
 
-    return nrect
+    return rectangular_feature_coordinates
 end
