@@ -105,7 +105,7 @@ end
     difference = 0.3
     max_error_points_percentage = 7.5
 
-function test_fb(dims::SVector{2, Int}, flow::Array{MVector{2, Float64}, 2}, x_flow::Float64, y_flow::Float64, difference::Float64)
+function test_fb(dims::SVector{2, Int}, flow::Array{SVector{2, Float64}, 2}, x_flow::Float64, y_flow::Float64, difference::Float64)
     #Testing parameters
     error_pts = 0
     max_err = 0

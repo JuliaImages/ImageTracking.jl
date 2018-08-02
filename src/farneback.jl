@@ -59,20 +59,21 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
     A1, B1, _ = polynomial_expansion(first_img, algo.neighbourhood, algo.σp)
     A2, B2, _ = polynomial_expansion(second_img, algo.neighbourhood, algo.σp)
 
+
     AtA = similar(A1)
     AtB = similar(B1)
 
-    disp = Array{MVector{2, Float64}, 2}(size(first_img))
+    disp = Array{SVector{2, Float64}, 2}(size(first_img))
     for i = 1:size(first_img)[1]
         for j = 1:size(first_img)[2]
-            disp[i,j] = MVector{2, Float64}(0.0,0.0)
+            disp[i,j] = SVector{2, Float64}(0.0,0.0)
         end
     end
 
     for k = 1:algo.iterations
         for i = 1:size(first_img)[1]
             for j = 1:size(first_img)[2]
-                d = disp[i,j][:]
+                d = disp[i,j]
 
                 mod_i = round(Int, i + d[2])
                 mod_j = round(Int, j + d[1])
@@ -80,16 +81,16 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
                 mod_i = clamp(mod_i, 1, size(first_img)[1])
                 mod_j = clamp(mod_j, 1, size(first_img)[2])
 
-                sub_A1 = A1[i,j,:,:]
-                sub_B1 = B1[i,j,:]
-                sub_A2 = A2[mod_i,mod_j,:,:]
-                sub_B2 = B2[mod_i,mod_j,:]
+                sub_A1 = SMatrix{2,2,Float64}(@view A1[i,j,:,:])
+                sub_B1 = SVector{2,Float64}(@view B1[i,j,:])
+                sub_A2 = SMatrix{2,2,Float64}(@view A2[mod_i,mod_j,:,:])
+                sub_B2 = SVector{2,Float64}(@view B2[mod_i,mod_j,:])
 
-                A = (sub_A1 .+ sub_A2)./2
-                dB = A*d .- ((sub_B2 .- sub_B1)./2)
+                A = (sub_A1 + sub_A2)/2
+                dB = A*d - ((sub_B2 - sub_B1)/2)
 
-                AtA[i,j,:,:] = A'*A
-                AtB[i,j,:] = A'*dB
+                AtA[i,j,:,:] .= A'*A
+                AtB[i,j,:] .= A'*dB
             end
         end
 
@@ -99,26 +100,28 @@ function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
         for i = 1:2
             for j = 1:2
                 if algo.gauss_flag
-                    AtA[:,:,i,j] = conv2(w, w, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
+                    AtA[:,:,i,j] = @view conv2(w, w, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
                 else
-                    AtA[:,:,i,j] = conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
+                    AtA[:,:,i,j] =  @view conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
                 end
             end
             if algo.gauss_flag
-                AtB[:,:,i] = conv2(w, w, AtB[:,:,i])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
+                AtB[:,:,i] = @view conv2(w, w, AtB[:,:,i])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
             else
-                AtB[:,:,i,j] = conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtB[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
+                AtB[:,:,i,j] = @view conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtB[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
             end
         end
 
+
         for i = 1:size(first_img)[1]
             for j = 1:size(first_img)[2]
-                disp[i,j][:] = MVector{2,Float64}(pinv(AtA[i,j,:,:])*AtB[i,j,:])
+                disp[i,j] = pinv2x2(SMatrix{2,2,Float64}(AtA[i,j,:,:]))*SVector{2,Float64}(AtB[i,j,:])
             end
         end
     end
 
     return disp
+
 end
 
 """
@@ -151,19 +154,29 @@ function polynomial_expansion(img::AbstractArray{T, 2}, neighbourhood::Int, σ::
     a = ImageFiltering.Kernel.gaussian((σ,σ), (neighbourhood,neighbourhood))[-len:len, -len:len]
 
     c = ones(size(img))
-    padded_c = reshape(padarray(c, Fill(0, (len, len)))[:], size(img) .+ 2*len)
+    padded_c = parent(padarray(c, Fill(0, (len, len))))
+    padded_img = parent(padarray(img, Fill(0, (len, len))))
 
-    padded_img = reshape(padarray(img, Fill(0, (len, len)))[:], size(img) .+ 2*len)
 
-    B = zeros(neighbourhood*neighbourhood, 6)
+
+    B0 = zeros(neighbourhood*neighbourhood, 6)
     for x = -len:len
         for y = -len:len
-            B[neighbourhood*(x + len) + (y + len) + 1, :] = [1, x, y, x*x, y*y, x*y]
+            B0[neighbourhood*(x + len) + (y + len) + 1, :] = [1, x, y, x*x, y*y, x*y]
         end
     end
 
-    Wa = diagm(a[:])
+    B = SMatrix{neighbourhood*neighbourhood, 6}(B0)
+    Wa = SDiagonal{neighbourhood^2,Float64}( @view a[:])
     BtWa = B'*Wa
+
+    # If we assume that the confidence is constant we can move several
+    # matrix multiplications out of the main loop. 
+    Wc = SDiagonal{neighbourhood^2,Float64}(ones(1,neighbourhood^2)...)
+    BtWaWc = BtWa*Wc
+    G = BtWaWc*B
+    G_inv = SMatrix{6,6,Float64}(pinv(convert(Array,G)))
+    G_invBtWaWc = G_inv*BtWaWc
 
     poly_A = zeros(size(img)[1], size(img)[2], 2, 2)
     poly_B = zeros(size(img)[1], size(img)[2], 2)
@@ -171,23 +184,21 @@ function polynomial_expansion(img::AbstractArray{T, 2}, neighbourhood::Int, σ::
 
     for i = (len + 1):(size(img)[1] - len)
         for j = (len + 1):(size(img)[2] - len)
-            sub_c = padded_c[(i - len):(i + len), (j - len):(j + len)]
-            sub_img = padded_img[(i - len):(i + len), (j - len):(j + len)]
+            sub_img = @view padded_img[(i - len):(i + len), (j - len):(j + len)]
+            r = G_invBtWaWc*SVector{neighbourhood^2,Float64}(@view sub_img[:])
 
-            Wc = diagm(sub_c[:])
-            BtWaWc = BtWa*Wc
-            G = BtWaWc*B
-            G_inv = pinv(G)
-            r = G_inv*BtWaWc*sub_img[:]
+            poly_A[i-len, j-len, 1, 1] =  r[4]
+            poly_A[i-len, j-len, 2, 1] =  r[6]/2
+            poly_A[i-len, j-len, 1, 2] =  r[6]/2
+            poly_A[i-len, j-len, 2, 2] =  r[5]
 
-            poly_A[i-len, j-len, :, :] = [r[4] r[6]/2
-                                          r[6]/2 r[5]]
-
-            poly_B[i-len, j-len, :] = [r[2], r[3]]
+            poly_B[i-len, j-len, 1] = r[2]
+            poly_B[i-len, j-len, 2] = r[3]
 
             poly_C[i-len, j-len] = r[1]
         end
     end
 
     return (poly_A, poly_B, poly_C)
+
 end
