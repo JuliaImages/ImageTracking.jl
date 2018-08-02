@@ -15,7 +15,11 @@ export
 	# main functions
 	optical_flow,
 
+	# other functions
+	polynomial_expansion,
+
 	# optical flow algorithms
-	LK
+	LK,
+	Farneback
 
 end
