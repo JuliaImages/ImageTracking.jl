@@ -27,3 +27,4 @@ end
 #------------------
 
 include("lucas_kanade.jl")
+include("farneback.jl")
