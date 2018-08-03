@@ -10,7 +10,7 @@ mutable struct TrackerMedianFlow{I <: Int, F <: Float64} <: Tracker
     #Uninitialized
     model::TrackerModel
 
-    TrackerMedianFlow(points_in_grid::I = 10, window_size::I = 11, max_level::I = 4, termination_criteria::I = 20, window_size_for_ncc::I = 30, max_median_of_displacement::F = 10.0) where {I <: Int, F <: Float64} = new{I, F}(
+    TrackerMedianFlow(points_in_grid::I = 15, window_size::I = 11, max_level::I = 4, termination_criteria::I = 20, window_size_for_ncc::I = 30, max_median_of_displacement::F = 10.0) where {I <: Int, F <: Float64} = new{I, F}(
                       points_in_grid, window_size, max_level, termination_criteria, window_size_for_ncc, max_median_of_displacement)
 end
 
@@ -40,8 +40,8 @@ function update_impl(tracker::TrackerMedianFlow{}, image::Array{T, 2}) where T
     new_points = new_points[good_points]
 
     filter_status = MVector{length(good_points)}(trues(good_points))
-    calc_fb_error(tracker, prev_img, next_img, points_to_track, new_points, filter_status)
-    calc_ncc_error(tracker, prev_img, next_img, points_to_track, new_points, filter_status)
+    filter_status = calc_fb_error(tracker, prev_img, next_img, points_to_track, new_points, filter_status)
+    filter_status = calc_ncc_error(tracker, prev_img, next_img, points_to_track, new_points, MVector{length(filter_status)}(filter_status))
 
     good_points = findn(filter_status)
     points_to_track = points_to_track[good_points]
@@ -117,6 +117,7 @@ function calc_fb_error(tracker::TrackerMedianFlow, prev_img::Array{T, 2}, next_i
     fb_error = norm.(old_points .- flow)
     median_fb_error = median(fb_error)
     status .= status .& (fb_error .<= median_fb_error)
+    return status
 end
 
 function get_patch(image::Array{T, 2}, patch_size::MVector{2, Int}, patch_center::SVector{2, I}) where {T, I <: Real}
@@ -140,9 +141,12 @@ function calc_ncc_error(tracker::TrackerMedianFlow, prev_img::Array{T, 2}, next_
         patch_1 = get_patch(prev_img, MVector{2}(tracker.window_size_for_ncc, tracker.window_size_for_ncc), old_points[i])
         patch_2 = get_patch(next_img, MVector{2}(tracker.window_size_for_ncc, tracker.window_size_for_ncc), new_points[i])
 
-        ncc_error[i] = ncc(Float64.(patch_1), Float64.(patch_2))
+        temp = ncc(Float64.(patch_1), Float64.(patch_2))
+        #TODO: Use DataArrays.jl to handle missing data
+        ncc_error[i] = isnan(temp) ? 0 : temp
     end
 
     median_ncc_error = median(ncc_error)
     status .= status .& (ncc_error .<= median_ncc_error)
+    return status
 end
