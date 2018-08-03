@@ -55,4 +55,70 @@ end
 	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(264, 175, 290, 201))
 	@show overlap_percentage
 	@test overlap_percentage > 50
+
+	#Real data tracking sequence
+	tr = TrackerMedianFlow()
+	a = MVector{4}(81,150,120,173)
+	img = Gray{Float64}.(load("test_data/tracking/images/img00000.png"))
+	init_tracker(tr, img, a)
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00001.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(83, 150, 122, 173))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00002.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(84, 151, 123, 174))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00003.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(85, 151, 124, 174))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00004.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(87, 151, 126, 174))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00005.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(89, 152, 128, 175))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00006.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(90, 155, 129, 178))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00007.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(90, 156, 129, 179))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00008.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(91, 158, 130, 181))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00009.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(90, 160, 129, 183))
+	@show overlap_percentage
+	@test overlap_percentage > 50
+
+	img = Gray{Float64}.(load("test_data/tracking/images/img00010.png"))
+	bounding_box = update_tracker(tr, img)
+	overlap_percentage = find_overlap(bounding_box, MVector{4, Int}(87, 161, 126, 184))
+	@show overlap_percentage
+	@test overlap_percentage > 50
 end
