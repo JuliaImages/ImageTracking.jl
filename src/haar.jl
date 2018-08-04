@@ -200,6 +200,10 @@ function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_r
     rectangular_feature_values = (sum(rectangular_features[:, 2:2:end], 2) - sum(rectangular_features[:, 1:2:end], 2))[:]
 end
 
+function haar_features(img::AbstractArray{T, 2}, top_left::Tuple{I, 2}, bottom_right::Tuple{I, 2}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
+	haar_features(img, [top_left[1], top_left[2]], [bottom_right[1], bottom_right[2]], feat, coordinates)
+end
+
 """
 ```
 coordinates = haar_coordinates(height, width, feat)
