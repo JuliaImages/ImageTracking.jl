@@ -9,11 +9,16 @@ using StaticArrays
 
 include("core.jl")
 include("optical_flow.jl")
+include("haar.jl")
 
 export
 
 	# main functions
-	optical_flow,
+  optical_flow,
+
+	# other functions
+	haar_coordinates,
+	haar_features,
 
 	# other functions
 	polynomial_expansion,
