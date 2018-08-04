@@ -192,11 +192,15 @@ function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_r
 
     rectangular_features = zeros(T, num_feats, num_rects)
     for i = 1:num_feats
+        a = rectangular_feature_coordinates[i]
         for j = 1:num_rects
-            rectangular_features[i,j] = boxdiff(img, (top_left[1] + rectangular_feature_coordinates[i][j, 1] - 1):(top_left[1] + rectangular_feature_coordinates[i][j, 3] - 1), (top_left[2] + rectangular_feature_coordinates[i][j, 2] - 1):(top_left[2] + rectangular_feature_coordinates[i][j, 4] - 1))
+            ytop = top_left[1] + a[j, 1] - 1
+            ybot = top_left[1] + a[j, 3] - 1
+            xtop = top_left[2] + a[j, 2] - 1
+            xbot = top_left[2] + a[j, 4] - 1
+            rectangular_features[i,j] = boxdiff(img, ytop, xtop, ybot, xbot)        
         end
     end
-
     rectangular_feature_values = (sum(rectangular_features[:, 2:2:end], 2) - sum(rectangular_features[:, 1:2:end], 2))[:]
 end
 
