@@ -9,6 +9,7 @@ using StaticArrays
 
 include("core.jl")
 include("optical_flow.jl")
+include("haar.jl")
 include("tracker.jl")
 
 export
@@ -18,7 +19,9 @@ export
 	init_tracker,
 	update_tracker,
 
-	# other functions
+  # other functions
+	haar_coordinates,
+	haar_features,
 	polynomial_expansion,
 
 	# optical flow algorithms

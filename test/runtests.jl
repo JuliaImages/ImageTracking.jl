@@ -5,4 +5,5 @@ using Base.Test
 # @test 1 == 2
 
 include("optical_flow.jl")
+include("haar.jl")
 include("tracker.jl")
