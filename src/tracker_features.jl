@@ -27,74 +27,74 @@ function initialize_feature_haar(patch_size::MVector{2, Int})
     haar_feature = SingleHaarFeature()
 
     while !selected
-        position = SVector{2}(round(Int, rand()*(patch_size[1] - 1) + 1), round(Int, rand()*(patch_size[2] - 1) + 1))
+        location = SVector{2}(ceil(Int, rand()*patch_size[1]), ceil(Int, rand()*patch_size[2]))
         dimensions = SVector{2}(round(Int, 0.75*rand()*patch_size[1]), round(Int, 0.75*rand()*patch_size[2]))
 
         case = rand([1, 2, 3, 4, 5])
 
         if case == 1
             #CHECK: Added -1 here
-            if position[1] + dimensions[1] - 1 > patch_size[1] || position[2] + 2*dimensions[2] - 1 > patch_size[2] || 2*dimensions[1]*dimensions[2] < 9
+            if location[1] + dimensions[1] - 1 > patch_size[1] || location[2] + 2*dimensions[2] - 1 > patch_size[2] || 2*dimensions[1]*dimensions[2] < 9
                 continue
             end
 
             haar_feature.rect_type = :x2
             haar_feature.num_of_areas = 2
             haar_feature.weights = MVector{2}(1.0, -1.0)
-            haar_feature.areas = MMatrix{4,2}(position[1], position[2], position[1] + dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1], position[2] + dimensions[2], position[1] + dimensions[1] - 1, position[2] + 2*dimensions[2] - 1)
+            haar_feature.areas = MMatrix{4,2}(location[1], location[2], location[1] + dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1], location[2] + dimensions[2], location[1] + dimensions[1] - 1, location[2] + 2*dimensions[2] - 1)
 
             selected = true
         elseif case == 2
-            if position[1] + 2*dimensions[1] - 1 > patch_size[1] || position[2] + dimensions[2] - 1 > patch_size[2] || 2*dimensions[1]*dimensions[2] < 9
+            if location[1] + 2*dimensions[1] - 1 > patch_size[1] || location[2] + dimensions[2] - 1 > patch_size[2] || 2*dimensions[1]*dimensions[2] < 9
                 continue
             end
 
             haar_feature.rect_type = :y2
             haar_feature.num_of_areas = 2
             haar_feature.weights = MVector{2}(1.0, -1.0)
-            haar_feature.areas = MMatrix{4,2}(position[1], position[2], position[1] + dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1] + dimensions[1], position[2], position[1] + 2*dimensions[1] - 1, position[2] + dimensions[2] - 1)
+            haar_feature.areas = MMatrix{4,2}(location[1], location[2], location[1] + dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1] + dimensions[1], location[2], location[1] + 2*dimensions[1] - 1, location[2] + dimensions[2] - 1)
 
             selected = true
         elseif case == 3
-            if position[1] + dimensions[1] - 1 > patch_size[1] || position[2] + 4*dimensions[2] - 1 > patch_size[2] || 4*dimensions[1]*dimensions[2] < 9
+            if location[1] + dimensions[1] - 1 > patch_size[1] || location[2] + 4*dimensions[2] - 1 > patch_size[2] || 4*dimensions[1]*dimensions[2] < 9
                 continue
             end
 
             haar_feature.rect_type = :x3
             haar_feature.num_of_areas = 3
             haar_feature.weights = MVector{3}(1.0, -2.0, 1.0)
-            haar_feature.areas = MMatrix{4,3}(position[1], position[2], position[1] + dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1], position[2] + dimensions[2], position[1] + dimensions[1] - 1, position[2] + 3*dimensions[2] - 1,
-                                              position[1], position[2] + 3*dimensions[2], position[1] + dimensions[1] - 1, position[2] + 4*dimensions[2] - 1)
+            haar_feature.areas = MMatrix{4,3}(location[1], location[2], location[1] + dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1], location[2] + dimensions[2], location[1] + dimensions[1] - 1, location[2] + 3*dimensions[2] - 1,
+                                              location[1], location[2] + 3*dimensions[2], location[1] + dimensions[1] - 1, location[2] + 4*dimensions[2] - 1)
 
             selected = true
         elseif case == 4
-            if position[1] + 4*dimensions[1] - 1 > patch_size[1] || position[2] + dimensions[2] - 1 > patch_size[2] || 4*dimensions[1]*dimensions[2] < 9
+            if location[1] + 4*dimensions[1] - 1 > patch_size[1] || location[2] + dimensions[2] - 1 > patch_size[2] || 4*dimensions[1]*dimensions[2] < 9
                 continue
             end
 
             haar_feature.rect_type = :y3
             haar_feature.num_of_areas = 3
             haar_feature.weights = MVector{3}(1.0, -2.0, 1.0)
-            haar_feature.areas = MMatrix{4,3}(position[1], position[2], position[1] + dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1] + dimensions[1], position[2], position[1] + 3*dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1] + 3*dimensions[1], position[2], position[1] + 4*dimensions[1] - 1, position[2] + dimensions[2] - 1)
+            haar_feature.areas = MMatrix{4,3}(location[1], location[2], location[1] + dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1] + dimensions[1], location[2], location[1] + 3*dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1] + 3*dimensions[1], location[2], location[1] + 4*dimensions[1] - 1, location[2] + dimensions[2] - 1)
 
             selected = true
         else
-            if position[1] + 2*dimensions[1] - 1 > patch_size[1] || position[2] + 2*dimensions[2] - 1 > patch_size[2] || 2*2*dimensions[1]*dimensions[2] < 9
+            if location[1] + 2*dimensions[1] - 1 > patch_size[1] || location[2] + 2*dimensions[2] - 1 > patch_size[2] || 2*2*dimensions[1]*dimensions[2] < 9
                 continue
             end
 
             haar_feature.rect_type = :xy4
             haar_feature.num_of_areas = 3
             haar_feature.weights = MVector{4}(1.0, -1.0, -1.0, 1.0)
-            haar_feature.areas = MMatrix{4,4}(position[1], position[2], position[1] + dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1], position[2] + dimensions[2], position[1] + dimensions[1] - 1, position[2] + 2*dimensions[2] - 1,
-                                              position[1] + dimensions[1], position[2], position[1] + 2*dimensions[1] - 1, position[2] + dimensions[2] - 1,
-                                              position[1] + dimensions[1], position[2] + dimensions[2], position[1] + 2*dimensions[1] - 1, position[2] + 2*dimensions[2] - 1)
+            haar_feature.areas = MMatrix{4,4}(location[1], location[2], location[1] + dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1], location[2] + dimensions[2], location[1] + dimensions[1] - 1, location[2] + 2*dimensions[2] - 1,
+                                              location[1] + dimensions[1], location[2], location[1] + 2*dimensions[1] - 1, location[2] + dimensions[2] - 1,
+                                              location[1] + dimensions[1], location[2] + dimensions[2], location[1] + 2*dimensions[1] - 1, location[2] + 2*dimensions[2] - 1)
 
             selected = true
         end

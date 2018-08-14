@@ -19,7 +19,7 @@ mutable struct TS_Current_Sample{F <: Float64, S <: Symbol} <: TrackerSampler
 end
 
 TS_Current_Sample(overlap::F = 0.99, search_factor::F = 1.8, mode::S = :positive) where {F <: Float64, S <: Symbol} = TS_Current_Sample{F, S}(
-                  overlap, search_factor, mode, MVector{4, Int}(),MVector{4, Int}(), MVector{4, Int}())
+                  overlap, search_factor, mode, MVector{4, Int}(), MVector{4, Int}(), MVector{4, Int}())
 
 function sample_impl(sampler::TS_Current_Sample{}, image::Array{T, 2}, ROI::MVector{4, Int}) where T
     sampler.tracked_patch = ROI
@@ -86,7 +86,7 @@ function sampling(sampler::TS_Current_Sample{}, image::Array{T, 2}, tracking_ROI
 
     for i = 1:step_col:max_col
         for j = 1:step_row:max_row
-            push!(sample, (image[j+sampler.sampling_ROI[1]:j+sampler.sampling_ROI[1]+height-1, i+sampler.sampling_ROI[2]:i+sampler.sampling_ROI[2]+width-1], MVector{2}(j+sampler.sampling_ROI[1], i+sampler.sampling_ROI[2])))
+            push!(sample, (image[j+sampler.sampling_ROI[1]-1:j+sampler.sampling_ROI[1]+height-2, i+sampler.sampling_ROI[2]-1:i+sampler.sampling_ROI[2]+width-2], MVector{2}(j+sampler.sampling_ROI[1]-1, i+sampler.sampling_ROI[2]-1)))
         end
     end
 

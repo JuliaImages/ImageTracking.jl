@@ -48,3 +48,4 @@ end
 mutable struct ConfidenceMap
     states::Vector{TrackerTargetState}
     confidence::Vector{Float64}
+end

@@ -1,5 +1,23 @@
 abstract type TrackerModel end
 
+function model_update(model::TrackerModel)
+    if model.max_length_cmaps_vector != -1 && length(model.confidence_maps) >= model.max_length_cmaps_vector-1
+      model.confidence_maps = model.confidence_maps[floor(Int, model.max_length_cmaps_vector/2) + 1:end]
+    end
+
+    if model.max_length_cmaps_vector != -1 && length(model.trajectory) >= model.max_length_cmaps_vector-1
+        model.trajectory = model.trajectory[floor(Int, model.max_length_cmaps_vector/2) + 1:end]
+    end
+
+    push!(model.confidence_maps, model.current_confidence_map)
+    update(model.state_estimator, SVector{length(model.confidence_maps)}(model.confidence_maps))
+end
+
+function run_state_estimator(model::TrackerModel)
+    target_state = estimate(model.state_estimator, SVector{length(model.confidence_maps)}(model.confidence_maps))
+    push!(model.trajectory, target_state)
+end
+
 #-----------------------------
 # MODEL FOR BOOSTING TRACKER
 #-----------------------------
@@ -20,8 +38,9 @@ mutable struct BoostingModel{I <: Int, S <: Symbol} <: TrackerModel
 end
 
 function initialize_boosting_model(bounding_box::MVector{4, Int}, max_length_cmaps_vector::Int = 10)
-    init_state = TrackerTargetState(SVector{2, Float64}(Float64(bounding_box[1]), Float64(bounding_box[2])), round(Int, bounding_box[3] - bounding_box[1]), round(Int, bounding_box[4] - bounding_box[2]), true)
-    trajectory = [init_state]
+    init_state = TrackerTargetState(SVector{2, Float64}(Float64(bounding_box[1]), Float64(bounding_box[2])), round(Int, bounding_box[3] - bounding_box[1] + 1), round(Int, bounding_box[4] - bounding_box[2] + 1), true)
+    trajectory = Vector{TrackerTargetState}()
+    push!(trajectory, init_state)
     return BoostingModel(10, :positive, trajectory)
 end
 
@@ -51,22 +70,4 @@ function model_estimation(model::BoostingModel, responses::Array{T, 2}, add_to_m
     end
 
     return confidence_map
-end
-
-function model_update(model::BoostingModel)
-    if model.max_length_cmaps_vector != -1 && length(model.confidence_maps) >= model.max_length_cmaps_vector-1
-      model.confidence_maps = model.confidence_maps[floor(Int, model.max_length_cmaps_vector/2) + 1:end]
-    end
-
-    if model.max_length_cmaps_vector != -1 && length(model.trajectory) >= model.max_length_cmaps_vector-1
-        model.trajectory = model.trajectory[floor(Int, model.max_length_cmaps_vector/2) + 1:end]
-    end
-
-    push!(model.confidence_maps, model.current_confidence_map)
-    update(model.state_estimator, SVector{length(model.confidence_maps)}(model.confidence_maps))
-end
-
-function run_state_estimator(model::BoostingModel)
-    target_state = estimate(model.state_estimator, SVector{length(model.confidence_maps)}(model.confidence_maps))
-    push!(model.trajectory, target_state)
 end

@@ -116,8 +116,6 @@ function classify(sc::StrongClassifier, images::MVector{N, Array{T, 2}}, sample_
     current_patch = 1
     for i = 1:width
         for j = 1:height
-            sc.detector.confidences[current_patch] = sc.detector.confidence_matrix[j,i]
-
             if sc.detector.confidences[current_patch] > sc.detector.max_confidence
                 sc.detector.max_confidence = sc.detector.confidences[current_patch]
                 sc.detector.best_detection_index = current_patch
@@ -143,6 +141,7 @@ function classify(sc::StrongClassifier, images::MVector{N, Array{T, 2}}, sample_
     end
 
     if sc.detector.num_of_detections <= 0
+        warn("No detections!")
         confidences = 0
         return index, confidences
     end

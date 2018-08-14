@@ -16,6 +16,8 @@ mutable struct TrackerBoosting{I <: Int, F <: Float64} <: Tracker
 end
 
 function init_impl(tracker::TrackerBoosting, image::Array{T, 2}, bounding_box::MVector{4, Int}) where T
+	srand(1)
+
     int_image = integral_image(Gray.(image))
 
     #Sampling
@@ -30,7 +32,6 @@ function init_impl(tracker::TrackerBoosting, image::Array{T, 2}, bounding_box::M
     end
 
     ROI = tracker.sampler.sampling_ROI
-
     #Compute Haar Features
     tracker.haar_tracker_features = HaarTrackerFeatures(tracker.num_of_features, MVector{2}((bounding_box[3] - bounding_box[1] + 1), (bounding_box[4] - bounding_box[2] + 1)))
     generate_features(tracker.haar_tracker_features, tracker.num_of_features)
@@ -77,11 +78,12 @@ function init_impl(tracker::TrackerBoosting, image::Array{T, 2}, bounding_box::M
 end
 
 function update_impl(tracker::TrackerBoosting, image::Array{T, 2}) where T
+    srand(1)
     int_image = integral_image(Gray.(image))
 
     #Get the last location
     last_target_state = tracker.model.trajectory[end]
-    last_target_bounding_box = MVector{4}(round(Int, last_target_state.position[1]), round(Int, last_target_state.position[2]), round(Int, last_target_state.position[1])+last_target_state.height, round(Int, last_target_state.position[2])+last_target_state.width)
+    last_target_bounding_box = MVector{4}(round(Int, last_target_state.position[1]), round(Int, last_target_state.position[2]), round(Int, last_target_state.position[1])+last_target_state.height-1, round(Int, last_target_state.position[2])+last_target_state.width-1)
 
     #Sampling new frame based on last location
     tracker.sampler.mode = :classify
