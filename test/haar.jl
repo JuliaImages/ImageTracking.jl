@@ -1,4 +1,4 @@
-using Images, StaticArrays
+using Images, StaticArrays, LinearAlgebra
 
 @testset "haar" begin
 
@@ -51,7 +51,7 @@ using Images, StaticArrays
 
     # Simple Image haar_features
 
-    img = diagm([1,1,1,1,1])
+    img = Matrix(Diagonal([1,1,1,1,1]))
     int_img = integral_image(img)
 
     test_features = haar_features(int_img, [2,2], [4,4], :x2)
