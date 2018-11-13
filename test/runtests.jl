@@ -6,3 +6,4 @@ using Base.Test
 
 include("optical_flow.jl")
 include("haar.jl")
+include("tracker.jl")
