@@ -10,21 +10,25 @@ using StaticArrays
 include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
+include("tracker.jl")
 
 export
 
 	# main functions
-  optical_flow,
-
-	# other functions
-	haar_coordinates,
-	haar_features,
+	optical_flow,
+	init_tracker,
+	update_tracker,
 
 	# other functions
 	polynomial_expansion,
+	haar_coordinates,
+	haar_features,
 
 	# optical flow algorithms
 	LK,
-	Farneback
+	Farneback,
+
+	#tracking algorithms
+	TrackerBoosting
 
 end
