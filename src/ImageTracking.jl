@@ -6,6 +6,7 @@ using Images
 using ImageFiltering
 using Interpolations
 using StaticArrays
+using LinearAlgebra
 
 include("core.jl")
 include("optical_flow.jl")
@@ -14,7 +15,8 @@ include("haar.jl")
 export
 
 	# main functions
-  optical_flow,
+    optical_flow,
+    optical_flow!,
 
 	# other functions
 	haar_coordinates,
@@ -24,7 +26,13 @@ export
 	polynomial_expansion,
 
 	# optical flow algorithms
-	LK,
-	Farneback
+	LucasKanade,
+	Farneback,
+
+    # types that select implementation
+    ConvolutionImplementation,
+    MatrixImplementation
+
+
 
 end

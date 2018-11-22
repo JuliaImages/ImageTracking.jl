@@ -1,146 +1,150 @@
-"""
-    Farneback(Args...)
 
-A method for dense optical flow estimation developed by Gunnar Farneback. It
-computes the optical flow for all the points in the frame using the polynomial
-representation of the images. The idea of polynomial expansion is to approximate
-the neighbourhood of a point in a 2D function with a polynomial. Displacement
-fields are estimated from the polynomial coefficients depending on how the
-polynomial transforms under translation.
 
-The different arguments are:
+abstract type AbstractImplementation end
+struct MatrixImplementation <: AbstractImplementation end
+struct ConvolutionImplementation <: AbstractImplementation end
 
- -  flow_est          =  Array of SVector{2} containing estimate flow values for all points in the frame
- -  iterations        =  Number of iterations the displacement estimation algorithm is run at each
-                         point
- -  window_size       =  Size of the search window at each pyramid level; the total size of the
-                         window used is 2*window_size + 1
- -  σw                =  Standard deviation of the Gaussian weighting filter
- -  neighbourhood     =  size of the pixel neighbourhood used to find polynomial expansion for each pixel;
-                         larger values mean that the image will be approximated with smoother surfaces,
-                         yielding more robust algorithm and more blurred motion field
- -  σp                =  standard deviation of the Gaussian that is used to smooth derivatives used as a
-                         basis for the polynomial expansion (Applicability)
- -  est_flag          =  true -> Use flow_est as initial estimate
-                         false -> Assume zero initial flow values
- -  gauss_flag        =  false -> use box filter
-                         true -> use gaussian filter instead of box filter of the same size for optical flow
-                         estimation; usually, this option gives more accurate flow than with a box filter,
-                         at the cost of lower speed (Default Value)
-
-## References
-
-Farnebäck G. (2003) Two-Frame Motion Estimation Based on Polynomial Expansion. In: Bigun J.,
-Gustavsson T. (eds) Image Analysis. SCIA 2003. Lecture Notes in Computer Science, vol 2749. Springer, Berlin,
-Heidelberg
-
-Farnebäck, G.: Polynomial Expansion for Orientation and Motion Estimation. PhD thesis, Linköping University,
-Sweden, SE-581 83 Linköping, Sweden (2002) Dissertation No 790, ISBN 91-7373-475-6.
-
-"""
-
-struct Farneback{F <: Float64, I <: Int, V <: Bool} <: OpticalFlowAlgo
-    flow_est::Array{SVector{2, F}, 2}
-    iterations::I
-    window_size::I
-    σw::F
-    neighbourhood::I
-    σp::F
-    est_flag::V
-    gauss_flag::V
+function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},  algo::Farneback{}) where T <: Gray
+    displacement = Array{SVector{2, Float64}, 2}(undef,size(first_img))
+    for i in eachindex(displacement)
+            displacement[i] = SVector{2, Float64}(0.0, 0.0)
+    end
+    optflow!(first_img, second_img, displacement,  algo)
 end
 
-Farneback(flow_est::Array{SVector{2, F}, 2}, iterations::I, window_size::I, σw::F, neighbourhood::I, σp::F, est_flag::V) where {F <: Float64, I <: Int, V <: Bool} = LK{F, I, V}(flow_est, iterations, window_size, σw, neighbourhood, σp, est_flag, true)
+function optflow!(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, displacement::Array{SVector{2, Float64}, 2}, algo::Farneback{}) where T <: Gray
 
-function optflow(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, algo::Farneback{}) where T <: Gray
-    if algo.est_flag
-        @assert size(first_img) == size(algo.flow_est)
-    end
-    A1, B1, _ = polynomial_expansion(first_img, algo.neighbourhood, algo.σp)
-    A2, B2, _ = polynomial_expansion(second_img, algo.neighbourhood, algo.σp)
+    # Replace NaN with zero in both images.
+    map!(x -> isnan(x) ? zero(x) : x, first_img, first_img)
+    map!(x -> isnan(x) ? zero(x) : x, second_img, second_img)
 
+    start_rows = first(first(axes(first_img)))
+    start_cols = first(last(axes(first_img)))
+    end_rows = last(first(axes(first_img)))
+    end_cols = last(last(axes(first_img)))
 
-    AtA = similar(A1)
-    AtB = similar(B1)
+    A1, B1, _ = polynomial_expansion(ConvolutionImplementation(), first_img, algo.expansion_window, algo.σ_expansion_window)
+    A2, B2, _ = polynomial_expansion(ConvolutionImplementation(), second_img, algo.expansion_window, algo.σ_expansion_window)
 
-    disp = Array{SVector{2, Float64}, 2}(size(first_img))
-    for i = 1:size(first_img)[1]
-        for j = 1:size(first_img)[2]
-            disp[i,j] = SVector{2, Float64}(0.0,0.0)
-        end
-    end
+    AtA = zero(similar(A1))
+    AtB = zero(similar(B1))
 
+    AtA_smoothed = zero(similar(A1))
+    AtB_smoothed = zero(similar(B1))
+
+    σ, w =  (algo.σ_estimation_window,algo.σ_estimation_window), (algo.estimation_window,algo.estimation_window)
+    kern = Kernel.gaussian(σ ,w)
+
+    Aₗ = zeros(Float64,2,2)
+    AtAₗ = zeros(Float64,2,2)
+    AtBₗ = zeros(Float64,2,1)
+    Adₗ = zeros(Float64,2,1)
+    bₗ = zeros(Float64,2,1)
+    dbₗ = zeros(Float64,2,1)
+    dₗ = zeros(Float64,2,1)
+    len = floor(Int, algo.expansion_window/2)
     for k = 1:algo.iterations
-        for i = 1:size(first_img)[1]
-            for j = 1:size(first_img)[2]
-                d = disp[i,j]
+        # We don't utilise the raw polynomial expansion coefficients at the
+        # border of the image; hence, we add and subtract `len`.
+        for j = start_cols + len:end_cols - len
+            for i = start_rows + len:end_rows - len
+                d = displacement[i,j]
 
                 mod_i = round(Int, i + d[2])
                 mod_j = round(Int, j + d[1])
+                mod_i = clamp(mod_i, 1, first(size(first_img)))
+                mod_j = clamp(mod_j, 1, last(size(first_img)))
 
-                mod_i = clamp(mod_i, 1, size(first_img)[1])
-                mod_j = clamp(mod_j, 1, size(first_img)[2])
-
-                sub_A1 = SMatrix{2,2,Float64}(@view A1[i,j,:,:])
-                sub_B1 = SVector{2,Float64}(@view B1[i,j,:])
-                sub_A2 = SMatrix{2,2,Float64}(@view A2[mod_i,mod_j,:,:])
-                sub_B2 = SVector{2,Float64}(@view B2[mod_i,mod_j,:])
-
-                A = (sub_A1 + sub_A2)/2
-                dB = A*d - ((sub_B2 - sub_B1)/2)
-
-                AtA[i,j,:,:] .= A'*A
-                AtB[i,j,:] .= A'*dB
-            end
-        end
-
-        len = floor(Int, algo.window_size/2)
-        w = ImageFiltering.KernelFactors.gaussian((algo.σw),(algo.window_size))[-len:len]
-
-        for i = 1:2
-            for j = 1:2
-                if algo.gauss_flag
-                    AtA[:,:,i,j] = @view conv2(w, w, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
-                else
-                    AtA[:,:,i,j] =  @view conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtA[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
+                # (A1[i,j,:,:] + A2[i,j,:,:]) / 2
+                for p = 1:2
+                    for q = 1:2
+                        setindex!(Aₗ, A1[i,j,p,q] / 2 + A2[mod_i,mod_j,p,q] / 2, p, q)
+                    end
+                end
+                # A*d
+                setindex!(dₗ, d[1], 1)
+                setindex!(dₗ, d[2], 2)
+                mul!(Adₗ, Aₗ, dₗ)
+                # (B2[i,j,:] - B1[i,j,:]) / 2
+                for p = 1:2
+                    setindex!(bₗ, (B2[mod_i,mod_j,p] - B1[i,j,p]) / 2 , p)
+                end
+                # dB = A*d - ((B2 - B1)/2)
+                broadcast!(-, dbₗ, Adₗ, bₗ)
+                # A'*A
+                mul!(AtAₗ,Aₗ',Aₗ)
+                # A'*dB
+                mul!(AtBₗ,Aₗ',dbₗ)
+                # Store result
+                for p = 1:2
+                    for q = 1:2
+                        setindex!(AtA, AtAₗ[p,q], i, j, p, q)
+                    end
+                    setindex!(AtB, AtBₗ[p], i, j, p)
                 end
             end
-            if algo.gauss_flag
-                AtB[:,:,i] = @view conv2(w, w, AtB[:,:,i])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
-            else
-                AtB[:,:,i,j] = @view conv2(ones(algo.window_size)./algo.window_size, ones(algo.window_size)./algo.window_size, AtB[:,:,i,j])[1+len:size(first_img)[1]+len,1+len:size(first_img)[2]+len]
-            end
         end
 
+        for p = 1:2
+            for q = 1:2
+                AtAview = @view AtA[:,:,p,q]
+                AtAview_smoothed = @view AtA_smoothed[:,:,p,q]
+                imfilter!(AtAview_smoothed, AtAview, kern, Pad(:replicate))
+            end
+            AtBview = @view AtB[:,:,p]
+            AtBview_smoothed = @view AtB_smoothed[:,:,p]
+            imfilter!(AtBview_smoothed, AtBview, kern, Pad(:replicate))
+        end
 
-        for i = 1:size(first_img)[1]
-            for j = 1:size(first_img)[2]
-                disp[i,j] = pinv2x2(SMatrix{2,2,Float64}(AtA[i,j,:,:]))*SVector{2,Float64}(AtB[i,j,:])
+        for j = start_cols:end_cols
+            for i = start_rows:end_rows
+                P = @view AtA_smoothed[i,j,:,:]
+                Q = @view  AtB_smoothed[i,j,:]
+                displacement[i,j] = SVector{2, Float64}(pinv2x2(P) * Q)
             end
         end
     end
-
-    return disp
-
+    # Convert (x,y) coordinate convention to (row, col) convention.
+    map!(x -> SVector(last(x), first(x)), displacement, displacement)
+    return displacement
 end
+
 
 """
 ```
-A, B, C = polynomial_expansion(img, neighbourhood, σ)
+A, B, C = polynomial_expansion(implementation, img, neighbourhood, σ)
 ```
 
 Returns the polynomial coefficients of the approximation of the neighbourhood of a
 point in a 2D function with a polynomial.
 The expansion is: f(x) = x'Ax + B'x + C
 
-Parameters:
+# Options
 
--  img               =  Grayscale image who polynomial expansion is to be found
--  neighbourhood     =  Size of the pixel neighbourhood used to find polynomial expansion for each pixel;
-                        larger values mean that the image will be approximated with smoother surfaces,
-                        yielding more robust algorithm and more blurred motion field
--  σ                 =  Standard deviation of the Gaussian that is used to smooth derivatives used as a
-                        basis for the polynomial expansion (Applicability)
+Various options for the fields of this type are described in more detail
+below.
+
+## Choices for `implementation`
+
+Selects implementation (`::MatrixImplementation` vs `::ConvolutionImplementation`).
+The matrix implementation serves as a useful reference against which other
+faster implementations can be validated.
+
+## Choices for `img`
+
+Grayscale (Float) image whose polynomial expansion is to be found.
+
+## Choices for `neighbourhood`
+
+Size of the pixel neighbourhood used to find polynomial expansion for each pixel;
+larger values mean that the image will be approximated with smoother surfaces,
+yielding more robust algorithm and more blurred motion field.
+
+## Choices for `σ`
+
+Standard deviation of the Gaussian that is used to smooth the image for the purpose
+of approximating it with a polynomial expansion.
+
 
 ## References
 
@@ -148,16 +152,11 @@ Farnebäck, G.: Polynomial Expansion for Orientation and Motion Estimation. PhD 
 Sweden, SE-581 83 Linköping, Sweden (2002) Dissertation No 790, ISBN 91-7373-475-6.
 
 """
-
-function polynomial_expansion(img::AbstractArray{T, 2}, neighbourhood::Int, σ::Real) where T <: Gray
+function polynomial_expansion(implementation::MatrixImplementation, img::AbstractArray{T, 2}, neighbourhood::Int, σ::Real) where T <: Gray
     len = floor(Int, neighbourhood/2)
     a = ImageFiltering.Kernel.gaussian((σ,σ), (neighbourhood,neighbourhood))[-len:len, -len:len]
 
-    c = ones(size(img))
-    padded_c = parent(padarray(c, Fill(0, (len, len))))
     padded_img = parent(padarray(img, Fill(0, (len, len))))
-
-
 
     B0 = zeros(neighbourhood*neighbourhood, 6)
     for x = -len:len
@@ -171,21 +170,21 @@ function polynomial_expansion(img::AbstractArray{T, 2}, neighbourhood::Int, σ::
     BtWa = B'*Wa
 
     # If we assume that the confidence is constant we can move several
-    # matrix multiplications out of the main loop. 
-    Wc = SDiagonal{neighbourhood^2,Float64}(ones(1,neighbourhood^2)...)
+    # matrix multiplications out of the main loop.
+    Wc = SDiagonal(ones(1,neighbourhood^2)...)
     BtWaWc = BtWa*Wc
     G = BtWaWc*B
     G_inv = SMatrix{6,6,Float64}(pinv(convert(Array,G)))
     G_invBtWaWc = G_inv*BtWaWc
-
     poly_A = zeros(size(img)[1], size(img)[2], 2, 2)
     poly_B = zeros(size(img)[1], size(img)[2], 2)
     poly_C = zeros(size(img))
-
-    for i = (len + 1):(size(img)[1] - len)
-        for j = (len + 1):(size(img)[2] - len)
+    f = @MVector zeros(neighbourhood^2)
+    for i = (len + 1):(size(padded_img)[1] - len)
+        for j = (len + 1):(size(padded_img)[2] - len)
             sub_img = @view padded_img[(i - len):(i + len), (j - len):(j + len)]
-            r = G_invBtWaWc*SVector{neighbourhood^2,Float64}(@view sub_img[:])
+            f .= vec(sub_img)
+            r = G_invBtWaWc*f
 
             poly_A[i-len, j-len, 1, 1] =  r[4]
             poly_A[i-len, j-len, 2, 1] =  r[6]/2
@@ -198,7 +197,139 @@ function polynomial_expansion(img::AbstractArray{T, 2}, neighbourhood::Int, σ::
             poly_C[i-len, j-len] = r[1]
         end
     end
-
     return (poly_A, poly_B, poly_C)
+end
 
+function polynomial_expansion(imp::ConvolutionImplementation, img::AbstractArray{T, 2}, neighbourhood::Int, σ::Real) where T <: Gray
+    len = floor(Int, neighbourhood/2)
+
+    # Define basis functions.
+    P₂ = construct_basis(len, neighbourhood)
+
+    # Construct Gaussian filter.
+    g = collect(KernelFactors.gaussian(σ,neighbourhood))
+
+    # Construct inverse metric using Gaussian "applicability".
+    G⁻¹ = construct_inverse_metric(P₂, g)
+
+    unity, x, x², y, xy, y² = calculate_correlations(img, len, g)
+
+    # In-place version of the following code (thus reducing allocations):
+    # unity_tmp = G⁻¹[1,1] * unity + G⁻¹[1,4] * x² + G⁻¹[1,5] * y²
+    # x = G⁻¹[2,2] * x
+    # y = G⁻¹[3,3] * y
+    # x² = G⁻¹[4,4] * x² + G⁻¹[4,1] * unity
+    # y² = G⁻¹[5,5] * y² + G⁻¹[5,1] * unity
+    # xy = G⁻¹[6,6] * xy
+    # unity = unity_tmp
+    unity_tmp = similar(unity)
+    broadcast!(+,unity_tmp, lmul!(G⁻¹[1,1], unity), lmul!(G⁻¹[1,4], x²), lmul!(G⁻¹[1,5] , y²))
+    x =  lmul!(G⁻¹[2,2], x)
+    y =  lmul!(G⁻¹[3,3], y)
+    x² = broadcast!(+,x², lmul!(G⁻¹[4,4]/G⁻¹[1,4], x²), lmul!(G⁻¹[4,1]/G⁻¹[1,1], unity))
+    y² = broadcast!(+,y², lmul!(G⁻¹[5,5]/G⁻¹[1,5], y² ), lmul!(G⁻¹[5,1]/G⁻¹[4,1], unity))
+    xy = lmul!(G⁻¹[6,6], xy)
+    unity = unity_tmp
+
+    # # The result of each multiplication allocated memory which is undesirable.
+    # # I've left this version because I am trying to track down an occasional
+    # # NaN bug and I want to be sure it is not due to the `in-place` version of
+    # # this code.
+    # unity_tmp = G⁻¹[1,1] * unity + G⁻¹[1,4] * x² + G⁻¹[1,5] * y²
+    # x = G⁻¹[2,2] * x
+    # y = G⁻¹[3,3] * y
+    # x² = G⁻¹[4,4] * x² + G⁻¹[4,1] * unity
+    # y² = G⁻¹[5,5] * y² + G⁻¹[5,1] * unity
+    # xy = G⁻¹[6,6] * xy
+    # unity = unity_tmp
+
+
+    poly_A = zeros(Float64,first(size(img)), last(size(img)), 2, 2)
+    poly_B = zeros(Float64,first(size(img)), last(size(img)), 2)
+    poly_C = unity
+    for j =  1:last(size(img))
+        for i = 1:first(size(img))
+            @inbounds setindex!(poly_A, x²[i,j], i, j, 1, 1)
+            @inbounds setindex!(poly_A, xy[i,j]/2, i, j, 1, 2)
+            @inbounds setindex!(poly_A, poly_A[i,j,1,2], i, j, 2, 1)
+            @inbounds setindex!(poly_A, y²[i,j], i, j, 2, 2)
+            @inbounds setindex!(poly_B, x[i,j], i, j, 1)
+            @inbounds setindex!(poly_B, y[i,j], i, j, 2)
+        end
+    end
+    return (poly_A, poly_B, poly_C)
+end
+
+function construct_basis(len::Int, neighbourhood::Int)
+    P₂ = zeros(neighbourhood*neighbourhood, 6)
+    for x = -len:len
+        for y = -len:len
+            P₂[neighbourhood*(x + len) + (y + len) + 1, :] = [1, x, y, x*x, y*y, x*y]
+        end
+    end
+    return P₂
+end
+
+function construct_inverse_metric(P₂::AbstractArray, g::AbstractArray)
+    applicability = g*g'
+    Wa = Matrix(Diagonal(@view applicability[:]))
+    P₂_Wa_P₂ = P₂'*Wa*P₂
+    G⁻¹ = pinv(P₂_Wa_P₂)
+end
+
+# function calculate_correlations(img, len, g)
+#     # Define basis functions.
+#     l = collect(-len:len)
+#     lg = l.*g
+#     l²g = l.*lg
+#
+#     # Ideally we wouldn't explicitly pad the image, but we would use
+#     # imfilter(img_p, ( ImageFiltering.ReshapedOneD{2,0}(centered(g)),), Fill(0,
+#     # (len,len), (len,len)) ) instead. However, currently that version of
+#     # imfilter seems to be broken (the fill value is not utilised).
+#     img_p = padarray(img, Fill(0, (len,len), (len,len)))
+#
+#     # Correlations along the first dimensions.
+#     unity_first_dimension = imfilter(img_p, ( ImageFiltering.ReshapedOneD{2,0}(centered(g)),), Inner())
+#     y_first_dimension = imfilter(img_p, ( ImageFiltering.ReshapedOneD{2,0}(centered(lg)),), Inner())
+#     y²_first_dimension = imfilter(img_p, ( ImageFiltering.ReshapedOneD{2,0}(centered(l²g)),), Inner())
+#
+#     # Correlations along the second dimensions.
+#     # Figure 4.1 (Follow correlation structure) 1, y, y², x , xy, x²
+#     unity = imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Inner())
+#     x =  imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(lg)),), Inner())
+#     x² =  imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(l²g)),), Inner())
+#
+#     y =  imfilter(y_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Inner())
+#     xy = imfilter(y_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(lg)),), Inner())
+#
+#     y² = imfilter(y²_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Inner())
+#
+#     return unity, x, x², y, xy, y²
+# end
+
+function calculate_correlations(img, len, g)
+    # Define basis functions.
+    l = collect(-len:len)
+    lg = l.*g
+    l²g = l.*lg
+
+
+    # Correlations along the first dimensions.
+    unity_first_dimension = imfilter(img, ( ImageFiltering.ReshapedOneD{2,0}(centered(g)),), Fill(0))
+    y_first_dimension = imfilter(img, ( ImageFiltering.ReshapedOneD{2,0}(centered(lg)),),  Fill(0))
+    y²_first_dimension = imfilter(img, ( ImageFiltering.ReshapedOneD{2,0}(centered(l²g)),), Fill(0))
+
+    # Correlations along the second dimensions.
+    # Figure 4.1 (Follow correlation structure) 1, y, y², x , xy, x²
+    unity = imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Fill(0))
+    x =  imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(lg)),), Fill(0))
+    x² =  imfilter(unity_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(l²g)),), Fill(0))
+
+    y =  imfilter(y_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Fill(0))
+    xy = imfilter(y_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(lg)),), Fill(0))
+
+    y² = imfilter(y²_first_dimension, ( ImageFiltering.ReshapedOneD{2,1}(centered(g)),), Fill(0))
+
+    return unity, x, x², y, xy, y²
 end

@@ -11,8 +11,8 @@ function svd2x2(M::AbstractArray)
     R = sqrt(F^2 + G^2)
     sx = Q + R
     sy = Q - R
-    a₁ = atan2(G,F)
-    a₂ = atan2(H,E)
+    a₁ = atan(G,F)
+    a₂ = atan(H,E)
     θ = (a₂ - a₁) / 2
     ϕ = (a₂ + a₁) / 2
     s = sign(sy)

@@ -1,6 +1,6 @@
-julia 0.6
+julia 0.7
 Images 0.13.0
 ImageFiltering 0.3.0
 Interpolations 0.7.3
 StaticArrays 0.7.0
-AxisAlgorithms 0.2.0 0.3.0
+AxisAlgorithms 0.2.0

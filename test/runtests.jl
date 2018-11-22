@@ -1,8 +1,7 @@
 using ImageTracking
-using Base.Test
+using Test
 
-# write your own tests here
-# @test 1 == 2
 
-include("optical_flow.jl")
+include("farneback.jl")
+include("lucas_kanade.jl")
 include("haar.jl")
