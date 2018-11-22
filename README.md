@@ -73,6 +73,6 @@ lines = map((p1, p2) -> (p1,p2), pts1, pts2)
 guidict = imshow(img1)
 # Green points indicate the initial keypoints. 
 idx1 = annotate!(guidict, AnnotationPoints(pts0, shape='.', size=1, color=RGB(0,1,0)))
-# Red lines demarcate optical flow on the keypoints that were succesfully tracked.
+# Red lines demarcate optical flow on the keypoints that were successfully tracked.
 idx2 = annotate!(guidict, AnnotationLines(lines, linewidth=2.0, color=RGB(1,0,0), coord_order="xyxy"))
 ```
