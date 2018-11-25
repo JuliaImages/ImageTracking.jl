@@ -38,7 +38,12 @@ end
         trans = Translation(-Δ[1], -Δ[2])
         img2 = warp(img1, trans, axes(img1))
 
-        flow = optical_flow(img1, img2, Farneback(7, 39, 6.0, 11, 1.5))
+        algorithm = Farneback(7, estimation_window = 19,
+                                 σ_estimation_window = 6.0,
+                                 expansion_window = 6,
+                                 σ_expansion_window = 1.5)
+
+        flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -52,7 +57,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, Farneback(7, 39, 6.0, 11, 1.5))
+        flow = optical_flow!(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -71,7 +76,12 @@ end
         trans = Translation(-Δ[1], -Δ[2])
         img2 = warp(img1, trans, axes(img1))
 
-        flow = optical_flow(img1, img2, Farneback(7, 39, 6.0, 11, 1.5))
+        algorithm = Farneback(7, estimation_window = 19,
+                                 σ_estimation_window = 6.0,
+                                 expansion_window = 6,
+                                 σ_expansion_window = 1.5)
+
+        flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -85,7 +95,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, Farneback(7, 39, 6.0, 11, 1.5))
+        flow = optical_flow!(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -104,7 +114,12 @@ end
         trans = Translation(-Δ[1], -Δ[2])
         img2 = warp(img1, trans, axes(img1))
 
-        flow = optical_flow(img1, img2, Farneback(7, 39, 6.0, 11, 1.5))
+        algorithm = Farneback(7, estimation_window = 19,
+                                 σ_estimation_window = 6.0,
+                                 expansion_window = 6,
+                                 σ_expansion_window = 1.5)
+
+        flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -118,7 +133,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, Farneback(7, 39, 6.0, 11, 1.5))
+        flow = optical_flow!(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100

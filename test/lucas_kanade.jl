@@ -33,7 +33,7 @@ end
         points = map((ri, ci) -> SVector{2}(Float64(ri), Float64(ci)), r, c)
         Random.seed!(9876)
         points = rand(points, (number_test_pts,))
-        flow, status_array = optical_flow(img1, img2, points, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -46,7 +46,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -71,7 +71,7 @@ end
         points = map((ri, ci) -> SVector{2}(Float64(ri), Float64(ci)), r, c)
         Random.seed!(9876)
         points = rand(points, (number_test_pts,))
-        flow, status_array = optical_flow(img1, img2, points, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -84,7 +84,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -109,7 +109,7 @@ end
         points = map((ri, ci) -> SVector{2}(Float64(ri), Float64(ci)), r, c)
         Random.seed!(9876)
         points = rand(points, (number_test_pts,))
-        flow, status_array = optical_flow(img1, img2, points, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -122,7 +122,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade( 11, 4, 20, 0.000001))
+        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
