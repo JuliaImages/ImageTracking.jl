@@ -16,7 +16,7 @@ algorithm = LucasKanade(20, window_size = 11,
                             eigenvalue_threshold = 0.000001)
 flow, indicator = optical_flow(Gray{Float32}.(img1), Gray{Float32}.(img2),points, algorithm)
 
-# Keep the subset of points that were succesfully tracked and determine
+# Keep the subset of points that were successfully tracked and determine
 # correspondences.
 valid_points = points[indicator]
 valid_flow = flow[indicator]
@@ -29,6 +29,6 @@ pts2 = map(x-> round.(Int,(last(x),first(x))), valid_correspondence)
 lines = map((p1, p2) -> (p1,p2), pts1, pts2)
 
 # Visualise the optical flow. Red lines demarcate optical flow on the keypoints
-# that were succesfully tracked.
+# that were successfully tracked.
 guidict = imshow(img1)
 idx2 = annotate!(guidict, AnnotationLines(lines, linewidth=2.0, color=RGB(1,0,0), coord_order="xyxy"))
