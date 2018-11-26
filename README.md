@@ -110,9 +110,8 @@ save("./demo/optical_flow_farneback.jpg", hsv)
   </div>
 </div>
 
-## Lucas-Kanade Algorithm
+### Lucas-Kanade Algorithm
 
-### Quick start
 ```julia
 """
     LucasKanade(Args...)
