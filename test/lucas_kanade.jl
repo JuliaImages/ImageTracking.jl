@@ -1,4 +1,18 @@
-using Images, TestImages, StaticArrays, OffsetArrays, Random, CoordinateTransformations
+# We output a message after loading each package to work around a
+# ten-minute timeout limit on Travis. Travis assumes the tests have hung
+# if the interval between printing something to stdio exceeds ten minutes.
+using Images
+@info "Finished loading Images package."
+using TestImages
+@info "Finished loading TestImages package."
+using StaticArrays
+@info "Finished loading StaticArrays package."
+using OffsetArrays
+@info "Finished loading OffsetArrays package."
+using Random
+@info "Finished loading Random package."
+using CoordinateTransformations
+@info "Finished loading CoordinateTransformations package."
 
 function evaluate_error(dims, flow::Array{SVector{2, Float64}, 1},  Δ,  tol)
     error_count = 0
@@ -18,6 +32,7 @@ end
 
 @testset "Lucas-Kanade" begin
     @testset "Horizontal Motion" begin
+        @info "Running Horizontal Motion test."
         maximum_percentage_error = 7.5
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
@@ -46,7 +61,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -56,6 +71,7 @@ end
     end
 
     @testset "Vertical Motion" begin
+        @info "Running Vertical Motion test."
         maximum_percentage_error = 7.5
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
@@ -84,7 +100,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
@@ -94,6 +110,7 @@ end
     end
 
     @testset "Combined Motion" begin
+        @info "Running Combined Motion test."
         maximum_percentage_error = 13
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
@@ -122,7 +139,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow, status_array = optical_flow!(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
+        flow, status_array = optical_flow(img1, img2, points, displacement, LucasKanade(20, 11, 4, 0.000001))
 
         error_count, maximum_error = evaluate_error(size(img1), flow[status_array], Δ, tol)
         percentage_error = (error_count / sum(status_array)) * 100
