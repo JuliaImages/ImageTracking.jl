@@ -1,4 +1,18 @@
-using Images, TestImages, StaticArrays, OffsetArrays, Random, CoordinateTransformations
+# We output a message after loading each package to work around a
+# ten-minute timeout limit on Travis. Travis assumes the tests have hung
+# if the interval between printing something to stdio exceeds ten minutes.
+using Images
+@info "Finished loading Images package."
+using TestImages
+@info "Finished loading TestImages package."
+using StaticArrays
+@info "Finished loading StaticArrays package."
+using OffsetArrays
+@info "Finished loading OffsetArrays package."
+using Random
+@info "Finished loading Random package."
+using CoordinateTransformations
+@info "Finished loading CoordinateTransformations package."
 
 function evaluate_error(dims, flow::Array{SVector{2, Float64}, 2},  Δ,  tol)
     error_count = 0
@@ -20,9 +34,12 @@ end
 
 @testset "Farneback" begin
     @testset "Polynomial Expansion" begin
+        @info "Running Polynomial Expansion test."
         img = Gray{Float64}.(testimage("mandrill"))
-        A, B, C = polynomial_expansion(ConvolutionImplementation(), img, 9, 2)
-        P, Q, R = polynomial_expansion(MatrixImplementation(), img, 9, 2)
+        @info "Running Polynomial Expansion Convolution Implementation."
+        @time A, B, C = polynomial_expansion(ConvolutionImplementation(), img, 6, 2)
+        @info "Running Polynomial Expansion Matrix Implementation."
+        @time P, Q, R = polynomial_expansion(MatrixImplementation(), img, 6, 2)
         @test sum(abs.(vec(A)-vec(P))) ≈  0 atol=1e-9
         @test sum(abs.(vec(B)-vec(Q))) ≈  0 atol=1e-9
         @test sum(abs.(vec(C)-vec(R))) ≈  0 atol=1e-9
@@ -30,6 +47,7 @@ end
     end
 
     @testset "Horizontal Motion" begin
+        @info "Running Horizontal Motion test."
         maximum_percentage_error = 7.5
         img1 = Gray{Float64}.(testimage("mandrill"))
 
@@ -43,7 +61,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -57,7 +75,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -68,6 +86,7 @@ end
     end
 
     @testset "Vertical Motion" begin
+        @info "Running Vertical Motion test."
         maximum_percentage_error = 7.5
         img1 = Gray{Float64}.(testimage("mandrill"))
 
@@ -81,7 +100,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -95,7 +114,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -106,6 +125,7 @@ end
     end
 
     @testset "Combined Motion" begin
+        @info "Running Combined  Motion test."
         maximum_percentage_error = 13
         img1 = Gray{Float64}.(testimage("mandrill"))
 
@@ -119,7 +139,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -133,7 +153,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow!(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100

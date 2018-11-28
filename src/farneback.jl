@@ -15,8 +15,8 @@ end
 function optflow!(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}, displacement::Array{SVector{2, Float64}, 2}, algorithm::Farneback{}) where T <: Gray
 
     # Replace NaN with zero in both images.
-    map!(x -> isnan(x) ? zero(x) : x, first_img, first_img)
-    map!(x -> isnan(x) ? zero(x) : x, second_img, second_img)
+    first_img = map(x -> isnan(x) ? zero(x) : x, first_img)
+    second_img = map(x -> isnan(x) ? zero(x) : x, second_img)
 
     start_rows = first(first(axes(first_img)))
     start_cols = first(last(axes(first_img)))
