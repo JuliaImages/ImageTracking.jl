@@ -36,10 +36,10 @@ end
     @testset "Polynomial Expansion" begin
         @info "Running Polynomial Expansion test."
         img = Gray{Float64}.(testimage("mandrill"))
-        A, B, C = polynomial_expansion(ConvolutionImplementation(), img, 9, 2)
         @info "Running Polynomial Expansion Convolution Implementation."
-        P, Q, R = polynomial_expansion(MatrixImplementation(), img, 9, 2)
+        @time A, B, C = polynomial_expansion(ConvolutionImplementation(), img, 6, 2)
         @info "Running Polynomial Expansion Matrix Implementation."
+        @time P, Q, R = polynomial_expansion(MatrixImplementation(), img, 6, 2)
         @test sum(abs.(vec(A)-vec(P))) ≈  0 atol=1e-9
         @test sum(abs.(vec(B)-vec(Q))) ≈  0 atol=1e-9
         @test sum(abs.(vec(C)-vec(R))) ≈  0 atol=1e-9
@@ -61,7 +61,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -75,7 +75,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -100,7 +100,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -114,7 +114,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -139,7 +139,7 @@ end
                                  expansion_window = 6,
                                  σ_expansion_window = 1.5)
 
-        flow = optical_flow(img1, img2, algorithm)
+        @time flow = optical_flow(img1, img2, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100
@@ -153,7 +153,7 @@ end
         for i in eachindex(displacement)
                 displacement[i] = SVector{2, Float64}(0.0, 0.0)
         end
-        flow = optical_flow(img1, img2, displacement, algorithm)
+        @time flow = optical_flow(img1, img2, displacement, algorithm)
 
         error_count, maximum_error = evaluate_error(size(img1), flow, Δ, tol)
         percentage_error = (error_count / prod(size(img1))) * 100

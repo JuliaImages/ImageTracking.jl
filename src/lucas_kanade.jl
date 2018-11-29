@@ -15,8 +15,8 @@ function optflow!(first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2}
     map!(x -> SVector(last(x), first(x)), displacement, displacement)
 
     # Replace NaN with zero in both images.
-    map!(x -> isnan(x) ? zero(x) : x, first_img, first_img)
-    map!(x -> isnan(x) ? zero(x) : x, second_img, second_img)
+    first_img = map(x -> isnan(x) ? zero(x) : x, first_img)
+    second_img = map(x -> isnan(x) ? zero(x) : x, second_img)
 
     # Construct Gaussian pyramids for both the images.
     first_pyramid, second_pyramid =  construct_pyramids(first_img, second_img,  algorithm.pyramid_levels)
