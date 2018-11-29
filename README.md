@@ -196,7 +196,14 @@ lines = map((p1, p2) -> (p1,p2), pts1, pts2)
 guidict = imshow(img1)
 idx2 = annotate!(guidict, AnnotationLines(lines, linewidth=2.0, color=RGB(1,0,0), coord_order="xyxy"))
 ```
-
+<div class="row">
+  <div class="column">
+   <img src="https://github.com/JuliaImages/ImageTracking.jl/blob/master/demo/table_input.gif" width="320" height="240"/>
+  </div>
+  <div class="column">
+    <img src="https://github.com/JuliaImages/ImageTracking.jl/blob/master/demo/optical_flow_lucaskanade.jpg" width="320" height="240"/>
+  </div>
+</div>
 
 
 
