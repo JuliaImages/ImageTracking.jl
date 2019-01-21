@@ -6,7 +6,14 @@ using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra,
 img1 = load("demo/car2.jpg")
 img2 = load("demo/car1.jpg")
 
-hsv = visualizeDenseFLowHSV(img1, img2)
+algorithm = Farneback(50, estimation_window = 11,
+                         σ_estimation_window = 9.0,
+                         expansion_window = 6,
+                         σ_expansion_window = 5.0)
+
+flow = optical_flow(Gray{Float32}.(img1), Gray{Float32}.(img2), algorithm)
+
+hsv = visualize_optical_flow_hsv(flow)
 
 imshow(RGB.(hsv))
 save("./demo/optical_flow_farneback.jpg", hsv)
