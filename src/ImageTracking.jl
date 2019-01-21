@@ -7,10 +7,12 @@ using ImageFiltering
 using Interpolations
 using StaticArrays
 using LinearAlgebra
+using CoordinateTransformations
 
 include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
+include("Utility.jl")
 
 export
 
@@ -24,6 +26,7 @@ export
 
 	# other functions
 	polynomial_expansion,
+	visualizeDenseFLowHSV,
 
 	# optical flow algorithms
 	LucasKanade,
