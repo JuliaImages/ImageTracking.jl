@@ -12,7 +12,7 @@ using CoordinateTransformations
 include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
-include("Utility.jl")
+include("utility.jl")
 
 export
 
@@ -26,7 +26,7 @@ export
 
 	# other functions
 	polynomial_expansion,
-	visualizeDenseFLowHSV,
+	visualize_optical_flow_hsv,
 
 	# optical flow algorithms
 	LucasKanade,
