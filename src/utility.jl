@@ -1,4 +1,15 @@
+"""
+```
+visualize_optical_flow_hsv(flow)
+```
 
+Return the visualization of an optical flow vector `flow` in hsv color space.
+
+Here, hue encodes angle between optical flow vector and the x-axis in the  image plane,
+saturation encodes the ratio between the individual vector magnitudes and the maximum magnitude 
+among the whole motion field.
+
+"""
 function visualize_optical_flow_hsv(flow::Array{SVector{2, Float64}, 2})
  
     # Convert from (row,column) to (x,y) convention.
