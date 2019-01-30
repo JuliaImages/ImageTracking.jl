@@ -30,7 +30,7 @@ export
 	# other functions
 	ColorBased,
 	polynomial_expansion,
-	visualize_optical_flow_hsv,
+	visualize_flow,
 
 	# optical flow algorithms
 	LucasKanade,
