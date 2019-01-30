@@ -9,6 +9,9 @@ using StaticArrays
 using LinearAlgebra
 using CoordinateTransformations
 
+abstract type VisualizationMethod end
+struct ColorBased <: VisualizationMethod end
+
 include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
@@ -25,6 +28,7 @@ export
 	haar_features,
 
 	# other functions
+	ColorBased,
 	polynomial_expansion,
 	visualize_optical_flow_hsv,
 
