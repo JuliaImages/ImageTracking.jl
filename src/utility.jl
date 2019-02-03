@@ -55,9 +55,9 @@ imshow(RGB.(hsv))
 """
 function visualize_flow(method::ColorBased, flow::Array{SVector{2, Float64}, 2}; convention="row_col")
  
-    if convention="row_col"
-								# Convert from (row,column) to (x,y) convention.
-								map!(x-> SVector(last(x),first(x)), flow, flow)
+    if convention == "row_col"
+	# Convert from (row,column) to (x,y) convention.
+	map!(x-> SVector(last(x),first(x)), flow, flow)
     end	
 	
     # Display optical flow as an image, with hue encoding the orientation and
