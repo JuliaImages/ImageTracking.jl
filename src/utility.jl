@@ -51,7 +51,8 @@ imshow(RGB.(hsv))
 ``` 
 
 # References
-[1] 
+[1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
+evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function visualize_flow(method::ColorBased, flow::Array{SVector{2, Float64}, 2}; convention="row_col")
  
