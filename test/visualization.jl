@@ -3,20 +3,9 @@
 # if the interval between printing something to stdio exceeds ten minutes.
 using Images
 @info "Finished loading Images package."
-using TestImages
-@info "Finished loading TestImages package."
 using StaticArrays
 @info "Finished loading StaticArrays package."
-using ImageTracking
-@info "Finished loading ImageTracking package."
-using ImageView
-@info "Finished loading ImageView package."
-using LinearAlgebra
-@info "Finished loading LinearAlgebra package."
-using CoordinateTransformations
-@info "Finished loading CoordinateTransformations package."
-using Gtk.ShortNames
-@info "Finished loading Gtk.ShortNames package."
+
 
 
 @testset "Visualization" begin
