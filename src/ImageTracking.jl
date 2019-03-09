@@ -31,6 +31,7 @@ export
 	ColorBased,
 	polynomial_expansion,
 	visualize_flow,
+	end_point_error,
 
 	# optical flow algorithms
 	LucasKanade,
