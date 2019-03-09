@@ -6,6 +6,7 @@ using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra,
 img1 = load("demo/car2.jpg")
 img2 = load("demo/car1.jpg")
 
+
 algorithm = Farneback(50, estimation_window = 11,
                          σ_estimation_window = 9.0,
                          expansion_window = 6,
