@@ -3,8 +3,8 @@ using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra,
 #=Image Credit:  C. Liu. Beyond Pixels: Exploring New Representations and
 #Applications for Motion Analysis. Doctoral Thesis. Massachusetts Institute of
 #Technology. May 2009. =#
-img1 = load("demo/car2.jpg")
-img2 = load("demo/car1.jpg")
+img1 = load("car2.jpg")
+img2 = load("car1.jpg")
 
 
 algorithm = Farneback(50, estimation_window = 11,
@@ -17,4 +17,4 @@ flow = optical_flow(Gray{Float32}.(img1), Gray{Float32}.(img2), algorithm)
 hsv = visualize_flow(ColorBased(), flow, convention="row_col")
 
 imshow(RGB.(hsv))
-save("./demo/optical_flow_farneback.jpg", hsv)
+save("./optical_flow_farneback.jpg", hsv)

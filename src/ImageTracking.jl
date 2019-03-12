@@ -32,6 +32,7 @@ export
 	polynomial_expansion,
 	visualize_flow,
 	end_point_error,
+	angular_error,
 
 	# optical flow algorithms
 	LucasKanade,
