@@ -80,8 +80,12 @@ struct Point{T}
     y::T
 end
 
-function is_flow_correct(p::Point)
+function check_flow(p::Point)
     return !isnan(p.x) && !isnan(p.y) && abs(p.x) < 1e9 && abs(p.y) < 1e9
+end
+
+function check_flow(p::Array{Float64, 1})
+    return !isnan(p[1]) && !isnan(p[2]) && abs(p[1]) < 1e9 && abs(p[2]) < 1e9
 end
 
 """
@@ -111,9 +115,6 @@ result = end_point_error(ground_truth_flow, estimated_flow)
 
 imshow(result)
 ```
-
-# References
-[1] 
 """
 function end_point_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2})
     result = Array{Float64, 2}(undef, size(estimated_flow)[1], size(estimated_flow)[2])
@@ -122,9 +123,62 @@ function end_point_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estim
             p1 = Point{Float64}(estimated_flow[i, j][1], estimated_flow[i, j][2])
             p2 = Point{Float64}(ground_truth_flow[i, j][1], ground_truth_flow[i, j][2])
 
-            if is_flow_correct(p1) && is_flow_correct(p2) 
+            if check_flow(p1) && check_flow(p2) 
                 diff = Point{Float64}(p1.x - p2.x, p1.y - p2.y)
                 result[i, j] = sqrt(diff.x^2 + diff.y^2)
+            else
+                result[i, j] = NaN
+            end
+        end
+    end
+    return result
+end
+
+
+"""
+```
+angular_error(ground_truth_flow, estimated_flow)
+```
+
+Returns a 2-Dimensional array that matches the dimensions of the input flow vector and
+that depicts the angle error between the estimated flow and the ground truth flow.
+
+# Details
+If the estimated flow at a point is (u0, v0) and ground truth flow is (u1, v1), it 
+calculates the angle between (u0, v0, 1) and (u1, v1, 1) vectors as measure for error. 
+
+# Arguments
+The flow parameters needs to be two-dimensional arrays of length-2 vectors (of type SVector) 
+which represent the displacement of each pixel.
+
+# Example
+
+Compute the angle error between two flows.
+```julia
+
+using ImageTracking
+
+result = angular_error(ground_truth_flow, estimated_flow)
+
+imshow(result)
+```
+"""
+function angular_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2})
+    result = Array{Float64, 2}(undef, size(estimated_flow))
+    for i in 1:size(estimated_flow)[1]
+        for j in 1:size(estimated_flow)[2]
+            p1 = append!(convert(Array{Float64, 1}, ground_truth_flow[i, j]), 1.0)
+            p2 = append!(convert(Array{Float64, 1}, estimated_flow[i, j]), 1.0)
+            if check_flow(p1) && check_flow(p2)
+                cosine = dot(p1, p2)/(norm(p1)*norm(p2))
+                if cosine > 1
+                    result[i, j] = 0
+                else
+                    result[i, j] = acos(cosine)
+                end
+                if result[i, j] <= 1e-5
+                    result[i, j] = 0
+                end
             else
                 result[i, j] = NaN
             end
