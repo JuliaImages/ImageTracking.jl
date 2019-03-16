@@ -14,7 +14,17 @@ algorithm = Farneback(50, estimation_window = 11,
 
 flow = optical_flow(Gray{Float32}.(img1), Gray{Float32}.(img2), algorithm)
 
-hsv = visualize_flow(ColorBased(), flow, convention="row_col")
+# flow visualization
+hsv = visualize_flow(flow, ColorBased(), convention="row_col")
+
+# Endpoint error statistics
+endpoint_error = evaluate_error(flow, flow, EndpointError())
+ep_mean, ep_sd, ep_RX, ep_AX = calculate_statistics(endpoint_error)
+
+# Angular error statistics
+angular_error = evaluate_error(flow, flow, AngularError())
+ang_mean, ang_sd, ang_RX, ang_AX = calculate_statistics(angular_error)
 
 imshow(RGB.(hsv))
 save("./optical_flow_farneback.jpg", hsv)
+

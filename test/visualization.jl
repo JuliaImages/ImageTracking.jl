@@ -19,7 +19,7 @@ using StaticArrays
     flow[5] = SVector{2, Float64}(-0.5, 0.3)
     flow[6] = SVector{2, Float64}(0.5, 0.5)
 
-    @time hsv = visualize_flow(ColorBased(), flow) 
+    @time hsv = visualize_flow(flow, ColorBased()) 
 
     @test hsv[1] == hsv[6]
     @test hsv[2] == hsv[4]

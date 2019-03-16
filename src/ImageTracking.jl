@@ -7,10 +7,15 @@ using ImageFiltering
 using Interpolations
 using StaticArrays
 using LinearAlgebra
+using Statistics
 using CoordinateTransformations
 
 abstract type VisualizationMethod end
 struct ColorBased <: VisualizationMethod end
+
+abstract type AbstractFlowError end
+struct EndpointError <: AbstractFlowError end
+struct AngularError <: AbstractFlowError end
 
 include("core.jl")
 include("optical_flow.jl")
@@ -29,10 +34,12 @@ export
 
 	# other functions
 	ColorBased,
+	EndpointError,
+	AngularError,
 	polynomial_expansion,
 	visualize_flow,
-	end_point_error,
-	angular_error,
+	evaluate_error,
+	calculate_statistics,
 
 	# optical flow algorithms
 	LucasKanade,
