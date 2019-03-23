@@ -55,7 +55,6 @@ imshow(RGB.(hsv))
 evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function visualize_flow(flow::Array{SVector{2, Float64}, 2}, method::ColorBased; convention="row_col")
- 
     if convention == "row_col"
 	# Convert from (row,column) to (x,y) convention.
 	map!(x-> SVector(last(x),first(x)), flow, flow)
@@ -83,7 +82,80 @@ end
 
 """
 ```
-evaluate_error(ground_truth_flow, estimated_flow, EndpointError())
+read_flow_file(file_path)
+```
+
+Returns a 2-Dimensional array that depicts the optical flow.
+
+# Details
+Reads simple .flo file format which is used for optical flow evaluation.
+The .flo file should store 2-band float image for horizontal (u) and vertical (v) flow components.
+Floats are stored in little endian format.
+
+bytes contain -
+  0-3     tag: "PIEH" in ASCII, which in little endian happens to be the float 202021.25
+          (just a sanity check that floats are represented correctly)
+  4-7     width as an integer
+  8-11    height as an integer
+  12-end  data (width*height*2*4 bytes total)
+          the float values for u and v, interleaved, in row order, i.e.,
+          u[row0,col0], v[row0,col0], u[row0,col1], v[row0,col1], ...
+
+# Arguements
+The file_path parameter needs to be a string, storing the address of .flo file.
+
+# Example
+
+Read flow file from .flo file and visualize the flow in HSV
+```julia
+
+using ImageTracking
+
+file_path = "./Example_flow.flo"
+flow = read_flow_file(file_path)
+result = visualize_flow(flow, ColorBased(), convention="row_col")
+imshow(RGB.(result))
+```
+
+# References
+[1] http://vision.middlebury.edu/flow/data/
+"""
+# first four bytes to be same in little endian
+# check this when reading a .flo file
+FLOAT_TAG = 202021.25
+function read_flow_file(file_path::String)
+    
+    io = open(file_path, "r")
+    seekstart(io)
+    
+    tag = read(io, Float32) # reading the initial tag 
+    
+    if tag != FLOAT_TAG
+        print("read_from_file: Problem reading file ", filepath)
+        return -1
+    end
+    
+    width  = read(io, Int32)
+    height = read(io, Int32)
+    
+    flow = Array{Array{Float64 ,1}, 2}(undef, height, width)
+    for i in 1:height
+        for j in 1:width
+            if eof(io) == false
+                fx = read(io, Float32)
+                fy = read(io, Float32)
+                flow[i, j] = [fx, fy]
+            end
+        end
+    end
+    close(io)
+    return convert(Array{SArray{Tuple{2},Float64,1,2},2}, flow)
+end
+
+
+"""
+```
+evaluate_flow_error(ground_truth_flow, estimated_flow, EndpointError())
 ```
 
 Returns a 2-Dimensional array that matches the dimensions of the input flow vector and
@@ -104,7 +176,7 @@ Compute the end point error between two flows.
 
 using ImageTracking
 
-result = evaluate_error(ground_truth_flow, estimated_flow, EndpointError())
+result = evaluate_flow_error(ground_truth_flow, estimated_flow, EndpointError())
 
 imshow(result)
 ```
@@ -113,7 +185,7 @@ imshow(result)
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
 evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
-function evaluate_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::EndpointError)
+function evaluate_flow_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::EndpointError)
     result = Array{Float64, 2}(undef, size(estimated_flow))
     for i in 1:size(estimated_flow)[1]
         for j in 1:size(estimated_flow)[2]
@@ -135,7 +207,7 @@ end
 
 """
 ```
-evaluate_error(ground_truth_flow, estimated_flow, AngularError())
+evaluate_flow_error(ground_truth_flow, estimated_flow, AngularError())
 ```
 
 Returns a 2-Dimensional array that matches the dimensions of the input flow vector and
@@ -156,7 +228,7 @@ Compute the angle error between two flows.
 
 using ImageTracking
 
-result = evaluate_error(ground_truth_flow, estimated_flow, AngularError())
+result = evaluate_flow_error(ground_truth_flow, estimated_flow, AngularError())
 
 imshow(result)
 ```
@@ -165,7 +237,7 @@ imshow(result)
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
 evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
-function evaluate_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::AngularError)
+function evaluate_flow_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::AngularError)
     result = Array{Float64, 2}(undef, size(estimated_flow))
     for i in 1:size(estimated_flow)[1]
         for j in 1:size(estimated_flow)[2]
@@ -189,6 +261,7 @@ function evaluate_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estima
     return result
 end
 
+
 """
 ```
 calculate_statistics(error)
@@ -210,7 +283,7 @@ Compute the Mean, SD, RX, AX stats of the flow error calculated using endpoint e
 
 using ImageTracking
 
-error = evaluate_error(ground_truth_flow, estimated_flow, EndpointError())
+error = evaluate_flow_error(ground_truth_flow, estimated_flow, EndpointError())
 mean, sd, rx, ax = calculate_statistics(error) 
 ```
 
@@ -219,7 +292,7 @@ Compute the mean, SD, RX, AX stats of the flow error calculated using angula err
 
 using ImageTracking
 
-error = evaluate_error(ground_truth_flow, estimated_flow, AngularError())
+error = evaluate_flow_error(ground_truth_flow, estimated_flow, AngularError())
 mean, sd, rx, ax = calculate_statistics(error) 
 ```
 
@@ -228,7 +301,6 @@ mean, sd, rx, ax = calculate_statistics(error)
 evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function calculate_statistics(error::Array{Float64, 2})
-
     R_thresholds = [0.5, 1.0, 2.0, 3.0, 5.0]
     A_thresholds = [0.5, 0.75, 0.95]
     
