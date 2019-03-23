@@ -38,7 +38,8 @@ export
 	AngularError,
 	polynomial_expansion,
 	visualize_flow,
-	evaluate_error,
+	read_flow_file,
+	evaluate_flow_error,
 	calculate_statistics,
 
 	# optical flow algorithms
