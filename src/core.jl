@@ -30,3 +30,23 @@ function pinv2x2(M::AbstractArray)
      D = SMatrix{2,2,Float64}( S[1,1] > tol ?  1/S[1,1] : 0.0 , 0.0, 0.0, S[2,2] > tol ?  1/S[2,2] : 0.0 )
      U*D*V'
 end
+
+mutable struct TrackerTargetState
+    #Initialized
+    position::SVector{2, Float64}
+    height::Int
+    width::Int
+    is_target::Bool
+
+    #Uninitialized
+    responses::Array{T, 2} where T
+
+    TrackerTargetState(position::SVector{2, Float64}, height::Int, width::Int, is_target::Bool) = new(
+                       position, height, width, is_target)
+end
+
+mutable struct ConfidenceMap
+    states::Vector{TrackerTargetState}
+    confidence::Vector{Float64}
+end
+
