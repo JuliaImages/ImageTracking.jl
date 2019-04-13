@@ -15,8 +15,7 @@ algorithm = Farneback(50, estimation_window = 11,
 flow = optical_flow(Gray{Float32}.(img1), Gray{Float32}.(img2), algorithm)
 
 # flow visualization
-hsv = visualize_flow(flow, ColorBased(), convention="row_col")
+hsv = visualize_flow(flow, ColorBased(), RasterConvention())
 
 imshow(RGB.(hsv))
 save("./optical_flow_farneback.jpg", hsv)
-

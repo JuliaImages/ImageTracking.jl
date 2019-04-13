@@ -1,8 +1,7 @@
 """
 ```
-visualize_flow(flow, ColorBased())
-visualize_flow(flow, ColorBased(); convention="row_col")
-visualize_flow(flow, ColorBased(); convention="x_y")
+visualize_flow(flow, ColorBased(), RasterConvention())
+visualize_flow(flow, ColorBased(), CartesianConvention())
 ```
 
 Returns an image that matches the dimensions of the input matrix and that depicts the 
@@ -16,7 +15,7 @@ among the whole motion field, and the values always equal one.
 # Arguments
 The flow parameter needs to be a two-dimensional arrays of length-2 vectors (of type SVector) 
 which represent the displacement of each pixel.
-The convention parameter is a optional keyword arguement to specify the convention the flow vectors are using.
+The convention parameter specifies the convention the flow vectors are using.
 
 # Example
 
@@ -25,17 +24,7 @@ Compute the HSV encoded visualization of flow vectors in (row, column) conventio
 
 using ImageTracking
 
-hsv = visualize_flow(flow, ColorBased())
-
-imshow(RGB.(hsv))
-```
-
-Compute the HSV encoded visualization of flow vectors in (row, column) convention.
-```julia
-
-using ImageTracking
-
-hsv = visualize_flow(flow, ColorBased(); convention="row_col")
+hsv = visualize_flow(flow, ColorBased(), RasterConvention())
 
 imshow(RGB.(hsv))
 ```
@@ -45,7 +34,7 @@ Compute the HSV encoded visualization of flow vectors in (x, y) convention.
 
 using ImageTracking
 
-hsv = visualize_flow(flow, ColorBased(); convention="x_y")
+hsv = visualize_flow(flow, ColorBased(), CartesianConvention())
 
 imshow(RGB.(hsv))
 ``` 
@@ -54,16 +43,29 @@ imshow(RGB.(hsv))
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
 evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
 """
-function visualize_flow(flow::Array{SVector{2, Float64}, 2}, method::ColorBased; convention="row_col")
-    if convention == "row_col"
+function visualize_flow(flow::Array{SVector{2, Float64}, 2}, method::ColorBased, convention::RasterConvention)
 	# Convert from (row,column) to (x,y) convention.
 	map!(x-> SVector(last(x),first(x)), flow, flow)
-    end	
 	
     # Display optical flow as an image, with hue encoding the orientation and
     # saturation encoding the relative magnitude.
-    max_norm = maximum(map(norm,flow))
-    normalised_flow = map(PolarFromCartesian(),flow / max_norm)
+    max_norm = maximum(map(norm, flow))
+    normalised_flow = map(PolarFromCartesian(), flow / max_norm)
+    hsv = zeros(HSV{Float32},size(flow))
+
+    for i in eachindex(flow)
+        hsv[i] = HSV((normalised_flow[i].θ + pi) * 180 / pi, normalised_flow[i].r, 1)
+    end
+
+    return hsv
+    
+end
+
+function visualize_flow(flow::Array{SVector{2, Float64}, 2}, method::ColorBased, convention::CartesianConvention)
+    # Display optical flow as an image, with hue encoding the orientation and
+    # saturation encoding the relative magnitude.
+    max_norm = maximum(map(norm, flow))
+    normalised_flow = map(PolarFromCartesian(), flow / max_norm)
     hsv = zeros(HSV{Float32},size(flow))
 
     for i in eachindex(flow)
@@ -113,7 +115,7 @@ using ImageTracking
 
 file_path = "./Example_flow.flo"
 flow = read_flow_file(file_path)
-result = visualize_flow(flow, ColorBased(), convention="row_col")
+result = visualize_flow(flow, ColorBased(), RasterConvention())
 imshow(RGB.(result))
 ```
 
