@@ -7,8 +7,8 @@ using ImageFiltering
 using Interpolations
 using StaticArrays
 using LinearAlgebra
-using Statistics
 using CoordinateTransformations
+using Statistics
 
 abstract type VisualizationMethod end
 struct ColorBased <: VisualizationMethod end
