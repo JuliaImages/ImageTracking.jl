@@ -25,6 +25,7 @@ include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
 include("utility.jl")
+include("tracker.jl")
 
 export
 
@@ -54,8 +55,10 @@ export
 
     # types that select implementation
     ConvolutionImplementation,
-    MatrixImplementation
+    MatrixImplementation,
 
-
+    # tracking algorithms
+    BoxROI,
+    TrackerBoosting
 
 end
