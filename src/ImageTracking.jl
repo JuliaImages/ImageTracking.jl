@@ -8,9 +8,18 @@ using Interpolations
 using StaticArrays
 using LinearAlgebra
 using CoordinateTransformations
+using Statistics
 
 abstract type VisualizationMethod end
 struct ColorBased <: VisualizationMethod end
+
+abstract type AbstractFlowError end
+struct EndpointError <: AbstractFlowError end
+struct AngularError <: AbstractFlowError end
+
+abstract type AbstractCoordinateConvention end
+struct RasterConvention <: AbstractCoordinateConvention end
+struct CartesianConvention <: AbstractCoordinateConvention end
 
 include("core.jl")
 include("optical_flow.jl")
@@ -29,8 +38,15 @@ export
 
 	# other functions
 	ColorBased,
+	EndpointError,
+	AngularError,
 	polynomial_expansion,
+	RasterConvention,
+	CartesianConvention,
 	visualize_flow,
+	read_flow_file,
+	evaluate_flow_error,
+	calculate_statistics,
 
 	# optical flow algorithms
 	LucasKanade,
