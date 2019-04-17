@@ -42,7 +42,7 @@ imshow(RGB.(hsv))
 
 # References
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
-evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
+evaluation methodology for optical flow. International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function visualize_flow(flow::Array{SVector{2, Float64}, 2}, method::ColorBased, convention::RasterConvention)
 	# Convert from (row,column) to (x,y) convention.
@@ -185,7 +185,7 @@ imshow(result)
 
 # References
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
-evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
+evaluation methodology for optical flow. International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function evaluate_flow_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::EndpointError)
     result = similar(Array{Float64, 2}, axes(estimated_flow))
@@ -235,14 +235,14 @@ imshow(result)
 
 # References
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
-evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
+evaluation methodology for optical flow. International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function evaluate_flow_error(ground_truth_flow::Array{SVector{2, Float64}, 2}, estimated_flow::Array{SVector{2, Float64}, 2}, error_type::AngularError)
     result = similar(Array{Float64, 2}, axes(estimated_flow))
     for i in CartesianIndices(estimated_flow)
         p1 = ground_truth_flow[i]
         p2 = estimated_flow[i]
-        if is_flow_known(estimated_flow[i]) && is_flow_known(ground_truth_flow[i])
+        if is_flow_known(p2) && is_flow_known(p1)
             p1 = push(p1, 1.0)
             p2 = push(p2, 1.0)
             cosine = dot(p1, p2)/(norm(p1)*norm(p2))
@@ -301,7 +301,7 @@ mean, sd, rx, ax = calculate_statistics(error)
 
 # References
 [1] S. Baker, D. Scharstein, JP Lewis, S. Roth, M.J. Black, and R. Szeliski. A database and
-evaluation methodology for optical flow.International Journal of Computer Vision, 92(1):1–31, 2011.
+evaluation methodology for optical flow. International Journal of Computer Vision, 92(1):1–31, 2011.
 """
 function calculate_statistics(error::Array{Float64, 2})
     R_thresholds = [0.5, 1.0, 2.0, 3.0, 5.0]
