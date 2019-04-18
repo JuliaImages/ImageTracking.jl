@@ -31,22 +31,23 @@ function pinv2x2(M::AbstractArray)
      U*D*V'
 end
 
-mutable struct TrackerTargetState
+abstract type AbstractTrackerTargetState end
+
+mutable struct BoostingTrackerTargetState <: AbstractTrackerTargetState
     #Initialized
     position::SVector{2, Float64}
-    height::Int
-    width::Int
+    height::Integer
+    width::Integer
     is_target::Bool
 
     #Uninitialized
     responses::Array{T, 2} where T
-
-    TrackerTargetState(position::SVector{2, Float64}, height::Int, width::Int, is_target::Bool) = new(
-                       position, height, width, is_target)
+    BoostingTrackerTargetState(position::SVector{2, Float64}, height::Integer, width::Integer, is_target::Bool) =
+    new(position, height, width, is_target)
 end
+
 
 mutable struct ConfidenceMap
-    states::Vector{TrackerTargetState}
-    confidence::Vector{Float64}
+    states::Vector{AbstractTrackerTargetState}
+    confidence::Vector{AbstractFloat}
 end
-

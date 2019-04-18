@@ -25,7 +25,7 @@ include("core.jl")
 include("optical_flow.jl")
 include("haar.jl")
 include("utility.jl")
-include("tracker.jl")
+include("tracker/tracker.jl")
 
 export
 
@@ -59,6 +59,7 @@ export
 
     # tracking algorithms
     BoxROI,
-    TrackerBoosting
+    TrackerBoosting,
+    init_tracker
 
 end
