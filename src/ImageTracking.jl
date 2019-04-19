@@ -59,7 +59,9 @@ export
 
     # tracking algorithms
     BoxROI,
+    CurrentSampler,
     TrackerBoosting,
-    init_tracker
+    initialize!,
+    update!
 
 end

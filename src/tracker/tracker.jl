@@ -9,20 +9,17 @@ include("tracker_sampler.jl")
 # include("tracker_features.jl")
 
 abstract type AbstractTracker end
-mutable struct TrackerBoosting{I <: Integer, F <: AbstractFloat, B <: BoxROI} <: AbstractTracker
+mutable struct TrackerBoosting{I <: Integer, B <: BoxROI, CS <: CurrentSampler} <: AbstractTracker
     # initialized
-    boxROI::B
+    box::B
+    sampler::CS
     num_of_classifiers::I
-    sampler_overlap::F
-    sampler_search_factor::F
     initial_iterations::I
     num_of_features::I
 
-    sampler::CurrentSample
     # constructor
-    function TrackerBoosting{I, F, B}(box::B, num_of_classifiers::I = 100, sampler_overlap::F = 0.99,
-        sampler_search_factor::F = 1.8, initial_iterations::I = 20,
-        num_of_features::I = 1050)where {I <: Integer, F <: AbstractFloat, B <: BoxROI}
+    function TrackerBoosting{I, B, CS}(box::B, sampler::CS, num_of_classifiers::I = 100, initial_iterations::I = 20,
+        num_of_features::I = 1050)where {I <: Integer, B <: BoxROI, CS <: CurrentSampler}
         if size(box.bound, 1) != 4
             error("Invalid bounding box size")
         end
@@ -46,14 +43,13 @@ mutable struct TrackerBoosting{I <: Integer, F <: AbstractFloat, B <: BoxROI} <:
         if box.bound[2] > box.bound[4]
             error("Invalid bounding box")
         end
-        new(box, num_of_classifiers, sampler_overlap, sampler_search_factor, initial_iterations, num_of_features)
+        new(box, sampler, num_of_classifiers, initial_iterations, num_of_features)
     end
 end
 
-TrackerBoosting(boxROI::B, num_of_classifiers::I, sampler_overlap::F, sampler_search_factor::F,
-initial_iterations::I, num_of_features::I) where {I <: Integer, F <: AbstractFloat, B <: BoxROI} =
-TrackerBoosting{I, F, B}(boxROI, num_of_classifiers, sampler_overlap, sampler_search_factor,
-initial_iterations, num_of_features)
+TrackerBoosting(box::B, sampler::CS, num_of_classifiers::I, initial_iterations::I, num_of_features::I)
+where{I <: Integer, B <: BoxROI, CS <: CurrentSampler} =
+TrackerBoosting{I, B, CS}(box, sampler, num_of_classifiers, initial_iterations, num_of_features)
 
 
 #------------------

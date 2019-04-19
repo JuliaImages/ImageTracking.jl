@@ -32,7 +32,6 @@ function pinv2x2(M::AbstractArray)
 end
 
 abstract type AbstractTrackerTargetState end
-
 mutable struct BoostingTrackerTargetState <: AbstractTrackerTargetState
     #Initialized
     position::SVector{2, Float64}
@@ -47,7 +46,7 @@ mutable struct BoostingTrackerTargetState <: AbstractTrackerTargetState
 end
 
 
-mutable struct ConfidenceMap
-    states::Vector{AbstractTrackerTargetState}
-    confidence::Vector{AbstractFloat}
+mutable struct ConfidenceMap{T <: AbstractTrackerTargetState, F <: AbstractFloat}
+    states::Vector{T}
+    confidence::Vector{F}
 end
