@@ -72,8 +72,7 @@ function sample_mode_roi(sampler::CurrentSampler, box::BoxROI, sampling_region::
         tr_sample = box.img[tr_block[1]:tr_block[3], tr_block[2]:tr_block[4]]
         bl_sample = box.img[bl_block[1]:bl_block[3], bl_block[2]:bl_block[4]]
         br_sample = box.img[br_block[1]:br_block[3], br_block[2]:br_block[4]]
-        samples = [(tl_sample, SVector{2, Integer}(tl_block[1:2])), (tr_sample, SVector{2, Integer}(tr_block[1:2])),
-        (bl_sample, SVector{2, Integer}(bl_block[1:2])), (br_sample, SVector{2, Integer}(br_block[1:2]))]
+        samples = [(tl_sample, SVector{2, Integer}(tl_block[1:2])) (tr_sample, SVector{2, Integer}(tr_block[1:2])) (bl_sample, SVector{2, Integer}(bl_block[1:2])) (br_sample, SVector{2, Integer}(br_block[1:2]))]
 
         return samples
     end

@@ -47,9 +47,7 @@ mutable struct TrackerBoosting{I <: Integer, B <: BoxROI, CS <: CurrentSampler} 
     end
 end
 
-TrackerBoosting(box::B, sampler::CS, num_of_classifiers::I, initial_iterations::I, num_of_features::I)
-where{I <: Integer, B <: BoxROI, CS <: CurrentSampler} =
-TrackerBoosting{I, B, CS}(box, sampler, num_of_classifiers, initial_iterations, num_of_features)
+TrackerBoosting(box::B, sampler::CS, num_of_classifiers::I, initial_iterations::I, num_of_features::I) where{I <: Integer, B <: BoxROI, CS <: CurrentSampler} = TrackerBoosting{I, B, CS}(box, sampler, num_of_classifiers, initial_iterations, num_of_features)
 
 
 #------------------
