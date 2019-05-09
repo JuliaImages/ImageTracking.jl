@@ -3,7 +3,6 @@ __precompile__()
 module ImageTracking
 
 using Images
-using ImageFiltering
 using Interpolations
 using StaticArrays
 using LinearAlgebra
