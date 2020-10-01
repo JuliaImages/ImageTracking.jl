@@ -1,5 +1,9 @@
 # ImageTracking
 
+[![][action-img]][action-url]
+[![][pkgeval-img]][pkgeval-url]
+[![][codecov-img]][codecov-url]
+
 Julia package for optical flow and object tracking algorithms. 
 
 The package currently implements optical flow estimation using the following methods:
@@ -213,4 +217,11 @@ idx2 = annotate!(guidict, AnnotationLines(lines, linewidth=2.0, color=RGB(1,0,0)
 </div>
 
 
+<!-- URLS -->
 
+[pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/I/ImageTracking.svg
+[pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
+[action-img]: https://github.com/JuliaImages/ImageTracking.jl/workflows/Unit%20test/badge.svg
+[action-url]: https://github.com/JuliaImages/ImageTracking.jl/actions
+[codecov-img]: https://codecov.io/github/JuliaImages/ImageTracking.jl/coverage.svg?branch=master
+[codecov-url]: https://codecov.io/github/JuliaImages/ImageTracking.jl?branch=master
