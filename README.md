@@ -71,13 +71,17 @@ Sweden, SE-581 83 Linköping, Sweden (2002) Dissertation No 790, ISBN 91-7373-47
 An example of dense optical flow estimation using the Farneback algorithm.
 
 ```julia
-using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations, Gtk.ShortNames
+using ImageTracking
+using Images, ImageView
+using CoordinateTransformations, StaticArrays
+using LinearAlgebra
 
 #=Image Credit:  C. Liu. Beyond Pixels: Exploring New Representations and
 #Applications for Motion Analysis. Doctoral Thesis. Massachusetts Institute of
 #Technology. May 2009. =#
-img1 = load("demo/car2.jpg")
-img2 = load("demo/car1.jpg")
+demo = joinpath(dirname(pathof(ImageTracking)), "..", "demo")
+img1 = load(joinpath(demo, "car2.jpg"))
+img2 = load(joinpath(demo, "car1.jpg"))
 
 algorithm = Farneback(50, estimation_window = 11,
                          σ_estimation_window = 9.0,
@@ -160,13 +164,16 @@ algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 An example using the Lucas-Kanade algorithm to determine the optical flow.
 
 ```julia
-using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations, Gtk.ShortNames
+using ImageTracking
+using Images, ImageView
+using StaticArrays
 
 #=Image Credit:  C. Liu. Beyond Pixels: Exploring New Representations and
 #Applications for Motion Analysis. Doctoral Thesis. Massachusetts Institute of
 #Technology. May 2009. =#
-img1 = load("demo/table1.jpg")
-img2 = load("demo/table2.jpg")
+demo = joinpath(dirname(pathof(ImageTracking)), "..", "demo")
+img1 = load(joinpath(demo, "table1.jpg"))
+img2 = load(joinpath(demo, "table2.jpg"))
 
 corners = imcorner(img1, method=shi_tomasi)
 I = findall(!iszero, corners)
