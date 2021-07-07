@@ -26,30 +26,29 @@ include("haar.jl")
 include("utility.jl")
 
 export
-
-	# main functions
+    # main functions
     optical_flow,
     optical_flow!,
 
-	# other functions
-	haar_coordinates,
-	haar_features,
+    # other functions
+    haar_coordinates,
+    haar_features,
 
-	# other functions
-	ColorBased,
-	EndpointError,
-	AngularError,
-	polynomial_expansion,
-	RasterConvention,
-	CartesianConvention,
-	visualize_flow,
-	read_flow_file,
-	evaluate_flow_error,
-	calculate_statistics,
+    # other functions
+    ColorBased,
+    EndpointError,
+    AngularError,
+    polynomial_expansion,
+    RasterConvention,
+    CartesianConvention,
+    visualize_flow,
+    read_flow_file,
+    evaluate_flow_error,
+    calculate_statistics,
 
-	# optical flow algorithms
-	LucasKanade,
-	Farneback,
+    # optical flow algorithms
+    LucasKanade,
+    Farneback,
 
     # types that select implementation
     ConvolutionImplementation,
