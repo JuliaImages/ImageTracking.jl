@@ -54,6 +54,4 @@ export
     ConvolutionImplementation,
     MatrixImplementation
 
-
-
 end

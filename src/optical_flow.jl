@@ -1,5 +1,5 @@
 """
-	OpticalFlowAlgorithm
+    OpticalFlowAlgorithm
 
 An optical flow algorithm with given parameters.
 """
@@ -110,17 +110,20 @@ out and its flow is not processed (default value is 10^-6).
 2. J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas-kanade feature tracker description of the algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
 struct LucasKanade{F <: Float64, I <: Int}  <: OpticalFlowAlgorithm
-	iterations::I
+    iterations::I
     window_size::I
     pyramid_levels::I
     eigenvalue_threshold::F
 end
 
-LucasKanade(iterations::Int = 20; window_size::Int = 11, pyramid_levels::Int = 4, eigenvalue_threshold::Real = 0.000001) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold)
+LucasKanade(
+    iterations::Int = 20; window_size::Int = 11, pyramid_levels::Int = 4,
+    eigenvalue_threshold::Real = 1e-4,
+) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold)
 
 """
-	flow = optical_flow(source, target, Farneback(Args...))
-	flow = optical_flow(source, target, displacement, Farneback(Args...))
+    flow = optical_flow(source, target, Farneback(Args...))
+    flow = optical_flow(source, target, displacement, Farneback(Args...))
 
 Returns the dense optical flow from the `source` to the `target` image using the `Farneback` algorithm.
 
@@ -135,21 +138,21 @@ The elements of `displacement` should represent the flow required to map the
 
 """
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, algorithm::Farneback) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	optflow(source, target, algorithm)
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    optflow(source, target, algorithm)
 end
 
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, displacement::Array{SVector{2, Float64}, 2}, algorithm::Farneback) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	@assert size.(axes(source)) == size.(axes(displacement)) "Optical flow field must match image size"
-	optflow!(source, target, copy(displacement), algorithm)
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    @assert size.(axes(source)) == size.(axes(displacement)) "Optical flow field must match image size"
+    optflow!(source, target, copy(displacement), algorithm)
 end
 
 """
-	flow, indicator  = optical_flow(source, target, points, LucasKanade(Args...))
-	flow, indicator  = optical_flow(source, target, points, displacement, LucasKanade(Args...))
+    flow, indicator  = optical_flow(source, target, points, LucasKanade(Args...))
+    flow, indicator  = optical_flow(source, target, points, displacement, LucasKanade(Args...))
 
 Returns the optical flow from the `source` to the `target` image for the specified `points` using the `LucasKanade` algorithm.
 
@@ -176,18 +179,18 @@ the bounds of the `target` image dimensions.
 
 """
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, points::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
 
-	optflow(source, target, points, algorithm)
+    optflow(source, target, points, algorithm)
 end
 
 
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, points::Array{SVector{2, Float64}, 1},  displacement::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade) where T <: Gray
-	# sanity checks
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	@assert size.(axes(points)) == size.(axes(displacement)) "Vector of points and vector of displacement must have the same size"
-	optflow!(source, target, points, copy(displacement), algorithm)
+    # sanity checks
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    @assert size.(axes(points)) == size.(axes(displacement)) "Vector of points and vector of displacement must have the same size"
+    optflow!(source, target, points, copy(displacement), algorithm)
 end
 
 
