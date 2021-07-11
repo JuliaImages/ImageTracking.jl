@@ -102,7 +102,12 @@ a default value of four is assumed.
 The algorithm calculates the minimum eigenvalue of a (2 x 2) normal matrix of
 optical flow equations, divided by number of pixels in a window; if this value
 is less than `eigenvalue_threshold`, then a corresponding feature is filtered
-out and its flow is not processed (default value is 10^-6).
+out and its flow is not processed (default value is 1e-4).
+
+## `ϵ` termination criteria
+
+Minimum required change in displacement at which the iterative algorithm continues to work.
+Default value is `1e-2`.
 
 ## References
 
@@ -114,12 +119,15 @@ struct LucasKanade{F <: Float64, I <: Int}  <: OpticalFlowAlgorithm
     window_size::I
     pyramid_levels::I
     eigenvalue_threshold::F
+    ϵ::Float64
 end
 
 LucasKanade(
     iterations::Int = 20; window_size::Int = 11, pyramid_levels::Int = 4,
-    eigenvalue_threshold::Real = 1e-4,
-) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold)
+    eigenvalue_threshold::Real = 1e-4, ϵ = 1e-2,
+) = LucasKanade(
+    iterations, window_size,  pyramid_levels, eigenvalue_threshold, ϵ,
+)
 
 """
     flow = optical_flow(source, target, Farneback(Args...))

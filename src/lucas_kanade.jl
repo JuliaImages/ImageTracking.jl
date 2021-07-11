@@ -1,129 +1,154 @@
-# TODO allow passing precomputed pyramids.
-# TODO add epsilon termination criteria.
+struct LKPyramid
+    layers::Vector{Matrix{Gray{Float64}}}
+
+    Iy::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+    Ix::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+
+    Iyy::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+    Ixx::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+    Iyx::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+end
+
+function LKPyramid(image, levels; downsample = 2, σ = 1.0, compute_gradients::Bool = true)
+    pyramid = gaussian_pyramid(image, levels, downsample, σ)
+    !compute_gradients &&
+        return LKPyramid(pyramid, nothing, nothing, nothing, nothing, nothing)
+
+    total_levels = levels + 1
+    Iy = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+    Ix = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+
+    Iyy = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+    Ixx = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+    Iyx = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+
+    filling = Fill(zero(eltype(pyramid[1])))
+    for (i, layer) in enumerate(pyramid)
+        Iy[i], Ix[i] = imgradients(layer, KernelFactors.scharr, filling)
+        Iyy[i], Ixx[i], Iyx[i] = compute_partial_derivatives(Iy[i], Ix[i])
+    end
+    LKPyramid(pyramid, Iy, Ix, Iyy, Ixx, Iyx)
+end
 
 function optflow(
-    first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
-    points::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade,
+    first_img::AbstractMatrix{T}, second_img::AbstractMatrix{T},
+    points::Vector{SVector{2, Float64}}, algorithm::LucasKanade,
 ) where T <: Gray
     displacement = fill(SVector{2, Float64}(0.0, 0.0), length(points))
-    optflow!(first_img, second_img, points, displacement, algorithm)
+    first_pyramid = LKPyramid(first_img, algorithm.pyramid_levels)
+    second_pyramid = LKPyramid(
+        second_img, algorithm.pyramid_levels; compute_gradients=false,
+    )
+    optflow!(first_pyramid, second_pyramid, points, displacement, algorithm)
 end
 
 function optflow!(
-    first_img::AbstractArray{T, 2}, second_img::AbstractArray{T,2},
-    points::Array{SVector{2, Float64}, 1},
-    displacement::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade,
+    first_img::AbstractMatrix{T}, second_img::AbstractMatrix{T},
+    points::Vector{SVector{2, Float64}}, displacement::Vector{SVector{2, Float64}},
+    algorithm::LucasKanade,
 ) where T <: Gray
-    window = algorithm.window_size
-    first_img = map(x -> isnan(x) ? zero(x) : x, first_img)
-    second_img = map(x -> isnan(x) ? zero(x) : x, second_img)
-
-    first_pyramid, second_pyramid = construct_pyramids(
-        first_img, second_img, algorithm.pyramid_levels,
+    first_pyramid = LKPyramid(first_img, algorithm.pyramid_levels)
+    second_pyramid = LKPyramid(
+        second_img, algorithm.pyramid_levels; compute_gradients=false,
     )
-    flow = fill(SVector{2, Float64}(0.0, 0.0), length(displacement))
-    status = trues(length(displacement))
+    optflow!(first_pyramid, second_pyramid, points, displacement, algorithm)
+end
 
-    for i = (algorithm.pyramid_levels + 1):-1:1
-        itp = interpolate(second_pyramid[i], BSpline(Linear()))
-        etp = extrapolate(itp, zero(eltype(second_pyramid[i])))
-        Iy, Ix = imgradients(
-            first_pyramid[i], KernelFactors.scharr,
-            Fill(zero(eltype(first_pyramid[i]))),
-        )
+function optflow!(
+    first_pyramid::LKPyramid, second_pyramid::LKPyramid,
+    points::Vector{SVector{2, Float64}}, displacement::Vector{SVector{2, Float64}},
+    algorithm::LucasKanade,
+)
+    enough_layers = (
+        length(first_pyramid.layers) > algorithm.pyramid_levels &&
+        length(second_pyramid.layers) > algorithm.pyramid_levels
+    )
+    !enough_layers && throw("Not enough layers in pyramids.")
 
-        Iyy_it, Ixx_it, Iyx_it = compute_partial_derivatives(Iy, Ix)
+    n_points = points |> length
+    status = trues(n_points)
 
-        inner_bounds = map(
-            i -> first(i) + window:last(i) - window, axes(first_pyramid[i]),
-        )
+    window = algorithm.window_size
+    window2x = 2 * window
 
-        for j = 1:length(displacement)
-            !status[j] && continue
+    for level in (algorithm.pyramid_levels + 1):-1:1
+        level_resolution = first_pyramid.layers[level] |> axes
+        # Interpolate layer to get sub-pixel precision.
+        # We never go out-of-bound, so there is no need to extrapolate.
+        interploated_layer = interpolate(second_pyramid.layers[level], BSpline(Linear()))
 
-            point = get_pyramid_coordinates(points, i, j)
+        for did in 1:n_points
+            @inbounds !status[did] && continue
 
-            if lies_in(inner_bounds, point)
-                grid = SVector{2}(
-                    (point[1] - window):(point[1] + window),
-                    (point[2] - window):(point[2] + window),
-                )
-                G = compute_spatial_gradient(grid, Iyy_it, Iyx_it, Ixx_it)
-                G_inv = G |> pinv
-                min_eigenvalue = (G |> eigen).values |> minimum
-                min_eigenvalue /= grid .|> length |> prod
+            point = get_pyramid_coordinate(@inbounds(points[did]), level)
+
+            grid, offsets = get_grid(point, point, window, level_resolution)
+            G_inv, min_eigenvalue = compute_spatial_gradient(first_pyramid, grid, level)
+            if min_eigenvalue < algorithm.eigenvalue_threshold
+                @inbounds status[did] = false
+                continue
             end
 
             pyramid_contribution = SVector{2}(0.0, 0.0)
-            for k = 1:algorithm.iterations
-                putative_flow = displacement[j] + pyramid_contribution
+            for k in 1:algorithm.iterations
+                putative_flow = @inbounds displacement[did] + pyramid_contribution
                 putative_correspondence = point + putative_flow
-                if !lies_in(axes(second_img), putative_correspondence)
-                    declare_lost!(status, flow, j)
+                if !lies_in(level_resolution, putative_correspondence)
+                    @inbounds status[did] = false
                     break
                 end
 
-                grid, offsets, is_truncated_window = get_grid(
-                    first_pyramid[i], point, putative_flow,
-                    window,
+                new_grid, new_offsets = get_grid(
+                    point, putative_correspondence, window, level_resolution,
                 )
-                if is_truncated_window
-                    G = compute_spatial_gradient(grid, Iyy_it, Iyx_it, Ixx_it)
-                    G_inv = G |> pinv
-                    min_eigenvalue = (G |> eigen).values |> minimum
-                    min_eigenvalue /= grid .|> length |> prod
+                # Recalculate gradient only if the grid changes.
+                if new_grid != grid
+                    grid, offsets = new_grid, new_offsets
+                    G_inv, min_eigenvalue = compute_spatial_gradient(
+                        first_pyramid, grid, level,
+                    )
+                    if min_eigenvalue < algorithm.eigenvalue_threshold
+                        @inbounds status[did] = false
+                        break
+                    end
+                else
+                    grid, offsets = new_grid, new_offsets
                 end
 
-                A = view(first_pyramid[i], grid[1], grid[2])
-                Ix_window = view(Ix, grid[1], grid[2])
-                Iy_window = view(Iy, grid[1], grid[2])
-
-                # TODO Add epsilon termination criteria.
                 estimated_flow = compute_flow_vector(
-                    putative_correspondence, G_inv, A,
-                    Iy_window, Ix_window, offsets, etp,
+                    putative_correspondence,
+                    first_pyramid, interploated_layer, level,
+                    grid, offsets, G_inv,
                 )
                 pyramid_contribution += estimated_flow
-
-                if is_lost(
-                    first_pyramid[i], point + pyramid_contribution,
-                    min_eigenvalue, algorithm.eigenvalue_threshold,
-                )
-                    declare_lost!(status, flow, j)
+                # Epsilon termination criteria.
+                norm(estimated_flow) < algorithm.ϵ && break
+                # Check if tracked point is out of image bounds.
+                if !lies_in(level_resolution, point + pyramid_contribution)
+                    @inbounds status[did] = false
                     break
                 end
             end
-
-            if status[j] && is_lost(displacement[j], 2 * window)
-                declare_lost!(status, flow, j)
+            @inbounds begin
+            # Check if flow is too big.
+            if status[did] && is_lost(displacement[did], window2x)
+                status[did] = false
             end
-
-            if status[j]
-                flow[j] = pyramid_contribution
-                displacement[j] = 2 * (displacement[j] + flow[j])
+            if status[did]
+                displacement[did] = displacement[did] + pyramid_contribution
+                level != 1 && (displacement[did] *= 2.0)
+            end
             end
         end
     end
 
-    output_flow = 0.5 * displacement
-    output_flow, status
-end
-
-function declare_lost!(status, flow, j)
-    status[j] = false
-    flow[j] = SVector{2, Float64}(0.0, 0.0)
-end
-
-function construct_pyramids(first_img, second_img, pyramid_levels)
-    first_pyramid = gaussian_pyramid(first_img, pyramid_levels, 2, 1.0)
-    second_pyramid = gaussian_pyramid(second_img, pyramid_levels, 2, 1.0)
-    first_pyramid, second_pyramid
+    displacement, status
 end
 
 function compute_partial_derivatives(Iy, Ix)
-    Iyy = imfilter(Iy .* Iy, Kernel.gaussian(1))
-    Ixx = imfilter(Ix .* Ix, Kernel.gaussian(1))
-    Iyx = imfilter(Iy .* Ix, Kernel.gaussian(1))
+    Iyy = imfilter(Iy .* Iy, Kernel.gaussian(4))
+    Ixx = imfilter(Ix .* Ix, Kernel.gaussian(4))
+    Iyx = imfilter(Iy .* Ix, Kernel.gaussian(4))
 
     Iyy_integral_table = integral_image(Iyy)
     Ixx_integral_table = integral_image(Ixx)
@@ -132,13 +157,7 @@ function compute_partial_derivatives(Iy, Ix)
     Iyy_integral_table, Ixx_integral_table, Iyx_integral_table
 end
 
-function get_pyramid_coordinates(points, i, j)
-    px = floor(Int, points[j][1] / 2 ^ (i - 1))
-    py = floor(Int, points[j][2] / 2 ^ (i - 1))
-    SVector{2}(px ,py)
-end
-
-function compute_spatial_gradient(
+function _compute_spatial_gradient(
     grid, Iyy_integral, Iyx_integral, Ixx_integral,
 )
     sum_Iyy = boxdiff(Iyy_integral, grid[1], grid[2])
@@ -147,93 +166,74 @@ function compute_spatial_gradient(
     SMatrix{2, 2, Float64}(sum_Iyy, sum_Iyx, sum_Iyx, sum_Ixx)
 end
 
-"""
-Evaluate Σ(δI .* I_y) and Σ(δI .* I_x), where δI = A .- B
+function compute_spatial_gradient(pyramid::LKPyramid, grid, level)
+    G = _compute_spatial_gradient(
+        grid, pyramid.Iyy[level], pyramid.Iyx[level], pyramid.Ixx[level],
+    )
+    U, S, V = G |> svd2x2
+    G_inv = pinv2x2(U, S, V)
+    min_eigenvalue = min(S[1, 1], S[2, 2]) / prod(length.(grid))
 
-B - is the extrapolated (for subpixel precision) second image pyramid layer.
-δI = A - B - is the temporal image derivative at the point [x, y].
+    G_inv, min_eigenvalue
+end
 
-b = Σ_y Σ_x [δI * Iy, δI * Ix]
-"""
 function prepare_linear_system(corresponding_point, A, Iy, Ix, offsets, B)
     P, Q = size(A)
+    by, bx = 0.0, 0.0
 
-    b = SVector{2, Float64}(0.0, 0.0)
-    for q in 1:Q, p in 1:P
+    @inbounds for q in 1:Q, p in 1:P
         r = corresponding_point[1] + offsets[1][p]
         c = corresponding_point[2] + offsets[2][q]
 
         δI = A[p, q] - B(r, c)
-        b += SVector{2, Float64}(δI * Iy[p, q], δI * Ix[p, q])
+        by += δI * Iy[p, q]
+        bx += δI * Ix[p, q]
     end
-    b
+
+    SVector{2, Float64}(by, bx)
 end
 
 function compute_flow_vector(
-    corresponding_point, G_inv, pyramid_window,
-    Iy, Ix, offsets, etp,
+    corresponding_point,
+    first_pyramid::LKPyramid, etp, level,
+    grid, offsets, G_inv,
 )
     b = prepare_linear_system(
-        corresponding_point, pyramid_window,
-        Iy, Ix,
+        corresponding_point,
+        view(first_pyramid.layers[level], grid[1], grid[2]),
+        view(first_pyramid.Iy[level], grid[1], grid[2]),
+        view(first_pyramid.Ix[level], grid[1], grid[2]),
         offsets, etp,
     )
     G_inv * b
 end
 
-function is_lost(
-    img::AbstractArray{T, 2}, point::SVector{2, U},
-    min_eigenvalue::Float64, eigenvalue_threshold::Float64,
-) where {T <: Gray, U <: Union{Int, Float64}}
-    !(lies_in(axes(img), point)) && return true
+@inline is_lost(displacement, window) =
+    @inbounds(displacement[1] > window || displacement[2] > window)
 
-    val = min_eigenvalue
-    val < eigenvalue_threshold
-end
-
-function is_lost(point::SVector{2, Float64}, window_size::Int)
-    point[1] > window_size || point[2] > window_size
-end
-
-function lies_in(
-    area::Tuple{AbstractRange{Int}, AbstractRange{Int}}, point::SVector{2, T},
-) where T <: Union{Int,Float64}
+@inline lies_in(area, point) = @inbounds(
     first(area[1]) ≤ point[1] ≤ last(area[1]) &&
     first(area[2]) ≤ point[2] ≤ last(area[2])
-end
+)
 
-function get_grid(
-    img::AbstractArray{T, 2},
-    point::SVector{2, U}, displacement::SVector{2, Float64},
-    window_size::Int,
-) where {T <: Gray, U <: Union{Int, Float64}}
-    new_point = point + displacement
-    allowed_area = map(
-        i -> (first(i) + window_size):(last(i) - window_size), axes(img),
-    )
-    is_truncated_window = (
-        !lies_in(allowed_area, new_point) || !lies_in(allowed_area, point)
-    )
+"""
+# Arguments
+- `level`: Level of the pyramid in `[1, levels]` range.
+"""
+@inline get_pyramid_coordinate(point, level) = floor.(Int64, point ./ 2 ^ (level - 1))
 
-    first_axis, second_axis = axes(img)
+function get_grid(point, new_point, window, image_axes)
+    rows, cols = image_axes
 
-    w_up = floor(Int64, min(window_size, min(
-        point[1] - first(first_axis), new_point[1] - first(second_axis),
-    )))
-    w_down = floor(Int64, min(window_size, min(
-        last(first_axis) - point[1], last(second_axis) - new_point[1],
-    )))
-    w_left = floor(Int64, min(window_size, min(
-        point[2] - first(second_axis), new_point[2] - first(second_axis),
-    )))
-    w_right = floor(Int64, min(window_size, min(
-        last(second_axis) - point[2], last(second_axis) - new_point[2],
-    )))
+    up = floor(Int64, min(window, min(point[1], new_point[1]) - first(rows)))
+    down = floor(Int64, min(window, last(rows) - max(point[1], new_point[1])))
+    left = floor(Int64, min(window, min(point[2], new_point[2]) - first(cols)))
+    right = floor(Int64, min(window, last(cols) - max(point[2], new_point[2])))
 
     new_grid = (
-        (point[1] - w_up):(point[1] + w_down),
-        (point[2] - w_left):(point[2] + w_right),
+        (point[1] - up):(point[1] + down),
+        (point[2] - left):(point[2] + right),
     )
-    offsets = (UnitRange(-w_up, w_down), UnitRange(-w_left, w_right))
-    new_grid, offsets, is_truncated_window
+    offsets = (-up:down, -left:right)
+    new_grid, offsets
 end
