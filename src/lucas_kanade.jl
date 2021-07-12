@@ -121,14 +121,14 @@ function optflow!(
                     grid, offsets, G_inv,
                 )
                 pyramid_contribution += estimated_flow
-                # Epsilon termination criteria.
-                abs(estimated_flow[1]) < algorithm.ϵ &&
-                    abs(estimated_flow[2]) < algorithm.ϵ && break
                 # Check if tracked point is out of image bounds.
                 if !lies_in(level_resolution, point + pyramid_contribution)
                     @inbounds status[did] = false
                     break
                 end
+                # Epsilon termination criteria.
+                abs(estimated_flow[1]) < algorithm.ϵ &&
+                    abs(estimated_flow[2]) < algorithm.ϵ && break
             end
             @inbounds begin
             # Check if flow is too big.
