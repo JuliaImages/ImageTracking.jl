@@ -81,8 +81,9 @@ function optflow!(
             @inbounds !status[did] && continue
 
             point = get_pyramid_coordinate(@inbounds(points[did]), level)
+            offsets = get_offsets(point, point, window, level_resolution)
+            grid = get_grid(point, offsets)
 
-            grid, offsets = get_grid(point, point, window, level_resolution)
             G_inv, min_eigenvalue = compute_spatial_gradient(first_pyramid, grid, level)
             if min_eigenvalue < algorithm.eigenvalue_threshold
                 @inbounds status[did] = false
@@ -90,7 +91,7 @@ function optflow!(
             end
 
             pyramid_contribution = SVector{2}(0.0, 0.0)
-            for k in 1:algorithm.iterations
+            for _ in 1:algorithm.iterations
                 putative_flow = @inbounds displacement[did] + pyramid_contribution
                 putative_correspondence = point + putative_flow
                 if !lies_in(level_resolution, putative_correspondence)
@@ -98,12 +99,13 @@ function optflow!(
                     break
                 end
 
-                new_grid, new_offsets = get_grid(
+                new_offsets = get_offsets(
                     point, putative_correspondence, window, level_resolution,
                 )
-                # Recalculate gradient only if the grid changes.
-                if new_grid != grid
-                    grid, offsets = new_grid, new_offsets
+                # Recalculate gradient only if the offset changes.
+                if new_offsets != offsets
+                    offsets = new_offsets
+                    grid = get_grid(point, offsets)
                     G_inv, min_eigenvalue = compute_spatial_gradient(
                         first_pyramid, grid, level,
                     )
@@ -112,7 +114,8 @@ function optflow!(
                         break
                     end
                 else
-                    grid, offsets = new_grid, new_offsets
+                    offsets = new_offsets
+                    grid = get_grid(point, offsets)
                 end
 
                 estimated_flow = compute_flow_vector(
@@ -120,15 +123,16 @@ function optflow!(
                     first_pyramid, interploated_layer, level,
                     grid, offsets, G_inv,
                 )
+                # Epsilon termination criteria.
+                abs(estimated_flow[1]) < algorithm.ϵ &&
+                    abs(estimated_flow[2]) < algorithm.ϵ && break
+
                 pyramid_contribution += estimated_flow
                 # Check if tracked point is out of image bounds.
                 if !lies_in(level_resolution, point + pyramid_contribution)
                     @inbounds status[did] = false
                     break
                 end
-                # Epsilon termination criteria.
-                abs(estimated_flow[1]) < algorithm.ϵ &&
-                    abs(estimated_flow[2]) < algorithm.ϵ && break
             end
             @inbounds begin
             # Check if flow is too big.
@@ -223,18 +227,20 @@ end
 """
 @inline get_pyramid_coordinate(point, level) = floor.(Int64, point ./ 2 ^ (level - 1))
 
-function get_grid(point, new_point, window, image_axes)
+function get_offsets(point, new_point, window, image_axes)
     rows, cols = image_axes
 
+    @inbounds begin
     up = floor(Int64, min(window, min(point[1], new_point[1]) - first(rows)))
     down = floor(Int64, min(window, last(rows) - max(point[1], new_point[1])))
     left = floor(Int64, min(window, min(point[2], new_point[2]) - first(cols)))
     right = floor(Int64, min(window, last(cols) - max(point[2], new_point[2])))
+    end
 
-    new_grid = (
-        (point[1] - up):(point[1] + down),
-        (point[2] - left):(point[2] + right),
-    )
-    offsets = (-up:down, -left:right)
-    new_grid, offsets
+    (-up:down, -left:right)
 end
+
+@inline get_grid(point, offsets) = @inbounds (
+    (point[1] + offsets[1][begin]):(point[1] + offsets[1][end]),
+    (point[2] + offsets[2][begin]):(point[2] + offsets[2][end]),
+)

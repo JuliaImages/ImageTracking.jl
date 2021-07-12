@@ -34,7 +34,7 @@ end
         @info "Running Horizontal Motion test."
         Random.seed!(9876)
 
-        tol = 1e-2
+        tol = 1e-1
         maximum_percentage_error = 7
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
@@ -65,7 +65,7 @@ end
         @info "Running Vertical Motion test."
         Random.seed!(9876)
 
-        tol = 1e-2
+        tol = 1e-1
         maximum_percentage_error = 7
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
@@ -96,7 +96,7 @@ end
         @info "Running Combined Motion test."
         Random.seed!(9876)
 
-        tol = 1e-2
+        tol = 1e-1
         maximum_percentage_error = 7
         number_test_pts = 500
         img1 = Gray{Float64}.(testimage("mandrill"))
