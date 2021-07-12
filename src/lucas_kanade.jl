@@ -59,20 +59,19 @@ function optflow!(
     points::Vector{SVector{2, Float64}}, displacement::Vector{SVector{2, Float64}},
     algorithm::LucasKanade,
 )
-    enough_layers = (
+    has_enough_layers =
         length(first_pyramid.layers) > algorithm.pyramid_levels &&
         length(second_pyramid.layers) > algorithm.pyramid_levels
-    )
-    !enough_layers && throw("Not enough layers in pyramids.")
+    has_enough_layers || throw("Not enough layers in pyramids.")
 
-    n_points = points |> length
+    n_points = length(points)
     status = trues(n_points)
 
     window = algorithm.window_size
     window2x = 2 * window
 
     for level in (algorithm.pyramid_levels + 1):-1:1
-        level_resolution = first_pyramid.layers[level] |> axes
+        level_resolution = axes(first_pyramid.layers[level])
         # Interpolate layer to get sub-pixel precision.
         # We never go out-of-bound, so there is no need to extrapolate.
         interploated_layer = interpolate(second_pyramid.layers[level], BSpline(Linear()))
@@ -140,7 +139,7 @@ function optflow!(
                 status[did] = false
             end
             if status[did]
-                displacement[did] = displacement[did] + pyramid_contribution
+                displacement[did] += pyramid_contribution
                 level != 1 && (displacement[did] *= 2.0)
             end
             end
@@ -150,14 +149,22 @@ function optflow!(
     displacement, status
 end
 
-function compute_partial_derivatives(Iy, Ix)
-    Iyy = imfilter(Iy .* Iy, Kernel.gaussian(4))
-    Ixx = imfilter(Ix .* Ix, Kernel.gaussian(4))
-    Iyx = imfilter(Iy .* Ix, Kernel.gaussian(4))
+function compute_partial_derivatives(Iy, Ix; σ = 4)
+    kernel = Kernel.gaussian(σ)
+    squared = typeof(Iy)(undef, size(Iy))
+    filtered = typeof(Iy)(undef, size(Iy))
 
-    Iyy_integral_table = integral_image(Iyy)
-    Ixx_integral_table = integral_image(Ixx)
-    Iyx_integral_table = integral_image(Iyx)
+    squared .= Iy .* Iy
+    imfilter!(filtered, squared, kernel)
+    Iyy_integral_table = integral_image(filtered)
+
+    squared .= Ix .* Ix
+    imfilter!(filtered, squared, kernel)
+    Ixx_integral_table = integral_image(filtered)
+
+    squared .= Iy .* Ix
+    imfilter!(filtered, squared, kernel)
+    Iyx_integral_table = integral_image(filtered)
 
     Iyy_integral_table, Ixx_integral_table, Iyx_integral_table
 end
@@ -175,7 +182,7 @@ function compute_spatial_gradient(pyramid::LKPyramid, grid, level)
     G = _compute_spatial_gradient(
         grid, pyramid.Iyy[level], pyramid.Iyx[level], pyramid.Ixx[level],
     )
-    U, S, V = G |> svd2x2
+    U, S, V = svd2x2(G)
     G_inv = pinv2x2(U, S, V)
     min_eigenvalue = min(S[1, 1], S[2, 2]) / prod(length.(grid))
 
@@ -225,16 +232,16 @@ end
 # Arguments
 - `level`: Level of the pyramid in `[1, levels]` range.
 """
-@inline get_pyramid_coordinate(point, level) = floor.(Int64, point ./ 2 ^ (level - 1))
+@inline get_pyramid_coordinate(point, level) = floor.(Int, point ./ 2 ^ (level - 1))
 
 function get_offsets(point, new_point, window, image_axes)
     rows, cols = image_axes
 
     @inbounds begin
-    up = floor(Int64, min(window, min(point[1], new_point[1]) - first(rows)))
-    down = floor(Int64, min(window, last(rows) - max(point[1], new_point[1])))
-    left = floor(Int64, min(window, min(point[2], new_point[2]) - first(cols)))
-    right = floor(Int64, min(window, last(cols) - max(point[2], new_point[2])))
+    up = floor(Int, min(window, min(point[1], new_point[1]) - first(rows)))
+    down = floor(Int, min(window, last(rows) - max(point[1], new_point[1])))
+    left = floor(Int, min(window, min(point[2], new_point[2]) - first(cols)))
+    right = floor(Int, min(window, last(cols) - max(point[2], new_point[2])))
     end
 
     (-up:down, -left:right)
