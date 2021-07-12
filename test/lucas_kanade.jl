@@ -23,7 +23,7 @@ end
 
 function get_keypoints(image, n_points)
     corners = imcorner(image, method=shi_tomasi)
-    I = findall(!iszero, corners)
+    I = CartesianIndices(corners)[corners .!= 0]
     r, c = (getindex.(I, 1), getindex.(I, 2))
     points = map((ri, ci) -> SVector{2, Float64}(ri, ci), r, c)
     rand(points, n_points)
