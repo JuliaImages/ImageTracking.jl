@@ -150,20 +150,22 @@ function optflow!(
 end
 
 function compute_partial_derivatives(Iy, Ix; σ = 4)
-    kernel = Kernel.gaussian(σ)
+    kernel = KernelFactors.gaussian(σ)
+    kernel_factors = kernelfactors((kernel, kernel))
+
     squared = typeof(Iy)(undef, size(Iy))
     filtered = typeof(Iy)(undef, size(Iy))
 
     squared .= Iy .* Iy
-    imfilter!(filtered, squared, kernel)
+    imfilter!(filtered, squared, kernel_factors)
     Iyy_integral_table = integral_image(filtered)
 
     squared .= Ix .* Ix
-    imfilter!(filtered, squared, kernel)
+    imfilter!(filtered, squared, kernel_factors)
     Ixx_integral_table = integral_image(filtered)
 
     squared .= Iy .* Ix
-    imfilter!(filtered, squared, kernel)
+    imfilter!(filtered, squared, kernel_factors)
     Iyx_integral_table = integral_image(filtered)
 
     Iyy_integral_table, Ixx_integral_table, Iyx_integral_table
