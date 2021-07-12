@@ -114,11 +114,11 @@ Default value is `1e-2`.
 1. B. D. Lucas, & Kanade. "An Interative Image Registration Technique with an Application to Stereo Vision," DARPA Image Understanding Workshop, pp 121-130, 1981.
 2. J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas-kanade feature tracker description of the algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
-struct LucasKanade{F <: Float64, I <: Int}  <: OpticalFlowAlgorithm
-    iterations::I
-    window_size::I
-    pyramid_levels::I
-    eigenvalue_threshold::F
+struct LucasKanade <: OpticalFlowAlgorithm
+    iterations::Int
+    window_size::Int
+    pyramid_levels::Int
+    eigenvalue_threshold::Float64
     ϵ::Float64
 end
 
