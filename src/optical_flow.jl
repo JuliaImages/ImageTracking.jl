@@ -123,11 +123,9 @@ struct LucasKanade{F <: Float64, I <: Int}  <: OpticalFlowAlgorithm
 end
 
 LucasKanade(
-    iterations::Int = 20; window_size::Int = 11, pyramid_levels::Int = 4,
-    eigenvalue_threshold::Real = 1e-4, ϵ = 1e-2,
-) = LucasKanade(
-    iterations, window_size,  pyramid_levels, eigenvalue_threshold, ϵ,
-)
+    iterations::Integer = 20; window_size::Integer = 11, pyramid_levels::Integer = 4,
+    eigenvalue_threshold::Real = 1e-4, ϵ::Real = 1e-2,
+) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold, ϵ)
 
 """
     flow = optical_flow(source, target, Farneback(Args...))

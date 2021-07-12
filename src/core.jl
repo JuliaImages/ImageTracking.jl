@@ -29,14 +29,14 @@ end
 # Computes the Moore-Penrose pseudoinverse for a 2-by-2 matrix M by only inverting
 # singular values above the threshold `tol = sqrt(eps(real(float(one(eltype(M))))))`
 function pinv2x2(M)
-    U, S, V = M |> svd2x2
+    U, S, V = svd2x2(M)
     pinv2x2(U, S, V)
 end
 
 function pinv2x2(
     U::AbstractMatrix{T}, S::AbstractMatrix{T}, V::AbstractMatrix{T},
 ) where T <: Number
-    tol = √eps(T |> one |> float |> real)
+    tol = √eps(real(float(one(T))))
     D = SMatrix{2, 2, T}(
         S[1, 1] > tol ? (1.0 / S[1, 1]) : 0.0, 0.0, 0.0,
         S[2, 2] > tol ? (1.0 / S[2, 2]) : 0.0,
