@@ -249,7 +249,8 @@ function get_offsets(point, new_point, window, image_axes)
     (-up:down, -left:right)
 end
 
-@inline get_grid(point, offsets) = @inbounds (
-    (point[1] + offsets[1][begin]):(point[1] + offsets[1][end]),
-    (point[2] + offsets[2][begin]):(point[2] + offsets[2][end]),
-)
+function get_grid(point, offsets)
+    map(point, offsets) do p, o
+        p+first(o):p+last(o)
+    end
+end
