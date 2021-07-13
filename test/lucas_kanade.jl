@@ -13,7 +13,7 @@ function evaluate_error(dims, flow::Array{SVector{2, Float64}, 1}, Δ, tol)
         if abs(δ[1] - Δ[1]) > tol || abs(δ[2] - Δ[2]) > tol
             error_count += 1
         end
-        error = sqrt((δ[1] - Δ[1]) ^ 2 + (δ[2] - Δ[2]) ^ 2)
+        error = sqrt( (δ[1] - Δ[1])^2 + (δ[2] - Δ[2])^2 )
         if error > maximum_error
             maximum_error = error
         end

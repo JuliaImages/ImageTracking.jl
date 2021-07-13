@@ -76,25 +76,25 @@ function optflow!(
         # We never go out-of-bound, so there is no need to extrapolate.
         interploated_layer = interpolate(second_pyramid.layers[level], BSpline(Linear()))
 
-        for did in 1:n_points
-            @inbounds !status[did] && continue
+        for n in 1:n_points
+            @inbounds !status[n] && continue
 
-            point = get_pyramid_coordinate(@inbounds(points[did]), level)
+            point = get_pyramid_coordinate(@inbounds(points[n]), level)
             offsets = get_offsets(point, point, window, level_resolution)
             grid = get_grid(point, offsets)
 
             G_inv, min_eigenvalue = compute_spatial_gradient(first_pyramid, grid, level)
             if min_eigenvalue < algorithm.eigenvalue_threshold
-                @inbounds status[did] = false
+                @inbounds status[n] = false
                 continue
             end
 
             pyramid_contribution = SVector{2}(0.0, 0.0)
             for _ in 1:algorithm.iterations
-                putative_flow = @inbounds displacement[did] + pyramid_contribution
+                putative_flow = @inbounds displacement[n] + pyramid_contribution
                 putative_correspondence = point + putative_flow
                 if !lies_in(level_resolution, putative_correspondence)
-                    @inbounds status[did] = false
+                    @inbounds status[n] = false
                     break
                 end
 
@@ -109,7 +109,7 @@ function optflow!(
                         first_pyramid, grid, level,
                     )
                     if min_eigenvalue < algorithm.eigenvalue_threshold
-                        @inbounds status[did] = false
+                        @inbounds status[n] = false
                         break
                     end
                 else
@@ -129,18 +129,18 @@ function optflow!(
                 pyramid_contribution += estimated_flow
                 # Check if tracked point is out of image bounds.
                 if !lies_in(level_resolution, point + pyramid_contribution)
-                    @inbounds status[did] = false
+                    @inbounds status[n] = false
                     break
                 end
             end
             @inbounds begin
             # Check if flow is too big.
-            if status[did] && is_lost(displacement[did], window2x)
-                status[did] = false
+            if status[n] && is_lost(displacement[n], window2x)
+                status[n] = false
             end
-            if status[did]
-                displacement[did] += pyramid_contribution
-                level != 1 && (displacement[did] *= 2.0)
+            if status[n]
+                displacement[n] += pyramid_contribution
+                level != 1 && (displacement[n] *= 2.0)
             end
             end
         end
