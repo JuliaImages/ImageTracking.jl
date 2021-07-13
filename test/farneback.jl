@@ -1,18 +1,9 @@
-# We output a message after loading each package to work around a
-# ten-minute timeout limit on Travis. Travis assumes the tests have hung
-# if the interval between printing something to stdio exceeds ten minutes.
 using Images
-@info "Finished loading Images package."
 using TestImages
-@info "Finished loading TestImages package."
 using StaticArrays
-@info "Finished loading StaticArrays package."
 using OffsetArrays
-@info "Finished loading OffsetArrays package."
 using Random
-@info "Finished loading Random package."
 using CoordinateTransformations
-@info "Finished loading CoordinateTransformations package."
 
 function evaluate_error(dims, flow::Array{SVector{2, Float64}, 2},  Δ,  tol)
     error_count = 0
@@ -164,4 +155,4 @@ end
 
     end
 
-end;
+end

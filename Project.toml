@@ -1,6 +1,6 @@
 name = "ImageTracking"
 uuid = "7632190a-71f5-11e9-04ef-99e081817785"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 AxisAlgorithms = "13072b0f-2c55-5437-9ae7-d433b7a33950"
