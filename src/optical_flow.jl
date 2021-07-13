@@ -1,5 +1,5 @@
 """
-	OpticalFlowAlgorithm
+    OpticalFlowAlgorithm
 
 An optical flow algorithm with given parameters.
 """
@@ -102,25 +102,34 @@ a default value of four is assumed.
 The algorithm calculates the minimum eigenvalue of a (2 x 2) normal matrix of
 optical flow equations, divided by number of pixels in a window; if this value
 is less than `eigenvalue_threshold`, then a corresponding feature is filtered
-out and its flow is not processed (default value is 10^-6).
+out and its flow is not processed (default value is 1e-4).
+
+## `ϵ` termination criteria
+
+Minimum required change in displacement at which the iterative algorithm continues to work.
+Default value is `1e-2`.
 
 ## References
 
 1. B. D. Lucas, & Kanade. "An Interative Image Registration Technique with an Application to Stereo Vision," DARPA Image Understanding Workshop, pp 121-130, 1981.
 2. J.-Y. Bouguet, “Pyramidal implementation of the afﬁne lucas-kanade feature tracker description of the algorithm,” Intel Corporation, vol. 5,no. 1-10, p. 4, 2001.
 """
-struct LucasKanade{F <: Float64, I <: Int}  <: OpticalFlowAlgorithm
-	iterations::I
-    window_size::I
-    pyramid_levels::I
-    eigenvalue_threshold::F
+struct LucasKanade <: OpticalFlowAlgorithm
+    iterations::Int
+    window_size::Int
+    pyramid_levels::Int
+    eigenvalue_threshold::Float64
+    ϵ::Float64
 end
 
-LucasKanade(iterations::Int = 20; window_size::Int = 11, pyramid_levels::Int = 4, eigenvalue_threshold::Real = 0.000001) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold)
+LucasKanade(
+    iterations::Integer = 20; window_size::Integer = 11, pyramid_levels::Integer = 4,
+    eigenvalue_threshold::Real = 1e-4, ϵ::Real = 1e-2,
+) = LucasKanade(iterations, window_size,  pyramid_levels, eigenvalue_threshold, ϵ)
 
 """
-	flow = optical_flow(source, target, Farneback(Args...))
-	flow = optical_flow(source, target, displacement, Farneback(Args...))
+    flow = optical_flow(source, target, Farneback(Args...))
+    flow = optical_flow(source, target, displacement, Farneback(Args...))
 
 Returns the dense optical flow from the `source` to the `target` image using the `Farneback` algorithm.
 
@@ -135,21 +144,21 @@ The elements of `displacement` should represent the flow required to map the
 
 """
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, algorithm::Farneback) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	optflow(source, target, algorithm)
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    optflow(source, target, algorithm)
 end
 
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, displacement::Array{SVector{2, Float64}, 2}, algorithm::Farneback) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	@assert size.(axes(source)) == size.(axes(displacement)) "Optical flow field must match image size"
-	optflow!(source, target, copy(displacement), algorithm)
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    @assert size.(axes(source)) == size.(axes(displacement)) "Optical flow field must match image size"
+    optflow!(source, target, copy(displacement), algorithm)
 end
 
 """
-	flow, indicator  = optical_flow(source, target, points, LucasKanade(Args...))
-	flow, indicator  = optical_flow(source, target, points, displacement, LucasKanade(Args...))
+    flow, indicator  = optical_flow(source, target, points, LucasKanade(Args...))
+    flow, indicator  = optical_flow(source, target, points, displacement, LucasKanade(Args...))
 
 Returns the optical flow from the `source` to the `target` image for the specified `points` using the `LucasKanade` algorithm.
 
@@ -176,18 +185,18 @@ the bounds of the `target` image dimensions.
 
 """
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, points::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade) where T <: Gray
-	# Sanity checks.
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    # Sanity checks.
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
 
-	optflow(source, target, points, algorithm)
+    optflow(source, target, points, algorithm)
 end
 
 
 function optical_flow(source::AbstractArray{T, 2}, target::AbstractArray{T,2}, points::Array{SVector{2, Float64}, 1},  displacement::Array{SVector{2, Float64}, 1}, algorithm::LucasKanade) where T <: Gray
-	# sanity checks
-	@assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
-	@assert size.(axes(points)) == size.(axes(displacement)) "Vector of points and vector of displacement must have the same size"
-	optflow!(source, target, points, copy(displacement), algorithm)
+    # sanity checks
+    @assert size.(axes(source)) == size.(axes(target)) "Images must have the same size"
+    @assert size.(axes(points)) == size.(axes(displacement)) "Vector of points and vector of displacement must have the same size"
+    optflow!(source, target, points, copy(displacement), algorithm)
 end
 
 
