@@ -1,16 +1,11 @@
-# We output a message after loading each package to work around a
-# ten-minute timeout limit on Travis. Travis assumes the tests have hung
-# if the interval between printing something to stdio exceeds ten minutes.
 using Images
-@info "Finished loading Images package."
 using StaticArrays
-@info "Finished loading StaticArrays package."
 
 @testset "Error Evaluation" begin
     @info "Running flow evaluation test."
 
     img1 = load("../demo/car2.jpg")
-    img2 = load("../demo/car1.jpg") 
+    img2 = load("../demo/car1.jpg")
 
     algorithm = Farneback(50, estimation_window = 11,
                          σ_estimation_window = 9.0,
@@ -35,4 +30,4 @@ using StaticArrays
     @test ep_AX[0.5] < 1e-5
     @test ang_RX[0.5] == 0
     @test ang_AX[0.5] < 1e-5
-end;
+end

@@ -1,12 +1,5 @@
-# We output a message after loading each package to work around a
-# ten-minute timeout limit on Travis. Travis assumes the tests have hung
-# if the interval between printing something to stdio exceeds ten minutes.
 using Images
-@info "Finished loading Images package."
 using StaticArrays
-@info "Finished loading StaticArrays package."
-
-
 
 @testset "Visualization" begin
     @info "Running flow visualization test."
@@ -25,4 +18,4 @@ using StaticArrays
     @test hsv[2] == hsv[4]
     @test hsv[3] == hsv[5]
 
-end;
+end

@@ -320,7 +320,7 @@ function calculate_statistics(error::Array{Float64, 2})
 
     # AX stats
     AX_count = Dict()
-    edges, counts = imhist(error)
+    edges, counts = build_histogram(error)
     max_val = maximum(counts)
     total_pix = length(error)
     pixel_cumulative_count = cumsum(counts)
