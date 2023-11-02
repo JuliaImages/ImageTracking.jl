@@ -1,9 +1,9 @@
-using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations, Gtk.ShortNames
+using Images, StaticArrays, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations
 #=Image Credit:  C. Liu. Beyond Pixels: Exploring New Representations and
 #Applications for Motion Analysis. Doctoral Thesis. Massachusetts Institute of
 #Technology. May 2009. =#
-img1 = load("demo/table1.jpg")
-img2 = load("demo/table2.jpg")
+img1 = load("table1.jpg")
+img2 = load("table2.jpg")
 
 corners = imcorner(img1, method=shi_tomasi)
 I = findall(!iszero, corners)

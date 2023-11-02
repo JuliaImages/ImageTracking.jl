@@ -1,5 +1,4 @@
-using ImageMagick
-using Images, TestImages, StaticArrays, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations, Gtk.ShortNames
+using Images, ImageTracking, ImageView, LinearAlgebra, CoordinateTransformations
 #=Image Credit:  C. Liu. Beyond Pixels: Exploring New Representations and
 #Applications for Motion Analysis. Doctoral Thesis. Massachusetts Institute of
 #Technology. May 2009. =#
