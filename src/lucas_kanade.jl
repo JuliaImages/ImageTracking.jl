@@ -1,12 +1,12 @@
-struct LKPyramid
-    layers::Vector{Matrix{Gray{Float64}}}
+struct LKPyramid{T, A<:AbstractMatrix{T}}
+    layers::Vector{A}
 
-    Iy::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
-    Ix::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+    Iy::Union{Nothing, Vector{A}}
+    Ix::Union{Nothing, Vector{A}}
 
-    Iyy::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
-    Ixx::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
-    Iyx::Union{Nothing, Vector{Matrix{Gray{Float64}}}}
+    Iyy::Union{Nothing, Vector{IntegralArray{T, 2, A}}}
+    Ixx::Union{Nothing, Vector{IntegralArray{T, 2, A}}}
+    Iyx::Union{Nothing, Vector{IntegralArray{T, 2, A}}}
 end
 
 function LKPyramid(image, levels; downsample = 2, σ = 1.0, compute_gradients::Bool = true)
@@ -15,14 +15,15 @@ function LKPyramid(image, levels; downsample = 2, σ = 1.0, compute_gradients::B
         return LKPyramid(pyramid, nothing, nothing, nothing, nothing, nothing)
 
     total_levels = levels + 1
-    Iy = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
-    Ix = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+    M = typeof(first(pyramid))
+    Iy = Vector{M}(undef, total_levels)
+    Ix = Vector{M}(undef, total_levels)
 
-    Iyy = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
-    Ixx = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
-    Iyx = Vector{Matrix{Gray{Float64}}}(undef, total_levels)
+    Iyy = Vector{IntegralArray{eltype(M), 2, M}}(undef, total_levels)
+    Ixx = Vector{IntegralArray{eltype(M), 2, M}}(undef, total_levels)
+    Iyx = Vector{IntegralArray{eltype(M), 2, M}}(undef, total_levels)
 
-    filling = Fill(zero(eltype(pyramid[1])))
+    filling = Fill(zero(eltype(M)))
     for (i, layer) in enumerate(pyramid)
         Iy[i], Ix[i] = imgradients(layer, KernelFactors.scharr, filling)
         Iyy[i], Ixx[i], Iyx[i] = compute_partial_derivatives(Iy[i], Ix[i])
@@ -158,15 +159,15 @@ function compute_partial_derivatives(Iy, Ix; σ = 4)
 
     squared .= Iy .* Iy
     imfilter!(filtered, squared, kernel_factors)
-    Iyy_integral_table = integral_image(filtered)
+    Iyy_integral_table = IntegralArray(filtered)
 
     squared .= Ix .* Ix
     imfilter!(filtered, squared, kernel_factors)
-    Ixx_integral_table = integral_image(filtered)
+    Ixx_integral_table = IntegralArray(filtered)
 
     squared .= Iy .* Ix
     imfilter!(filtered, squared, kernel_factors)
-    Iyx_integral_table = integral_image(filtered)
+    Iyx_integral_table = IntegralArray(filtered)
 
     Iyy_integral_table, Ixx_integral_table, Iyx_integral_table
 end
@@ -174,11 +175,12 @@ end
 function _compute_spatial_gradient(
     grid, Iyy_integral, Iyx_integral, Ixx_integral,
 )
-    sum_Iyy = boxdiff(Iyy_integral, grid[1], grid[2])
-    sum_Ixx = boxdiff(Ixx_integral, grid[1], grid[2])
-    sum_Iyx = boxdiff(Iyx_integral, grid[1], grid[2])
+    sum_Iyy = Iyy_integral[makeiv(grid[1]), makeiv(grid[2])]
+    sum_Ixx = Ixx_integral[makeiv(grid[1]), makeiv(grid[2])]
+    sum_Iyx = Iyx_integral[makeiv(grid[1]), makeiv(grid[2])]
     SMatrix{2, 2, Float64}(sum_Iyy, sum_Iyx, sum_Iyx, sum_Ixx)
 end
+makeiv(range::AbstractUnitRange) = first(range) .. last(range)
 
 function compute_spatial_gradient(pyramid::LKPyramid, grid, level)
     G = _compute_spatial_gradient(
