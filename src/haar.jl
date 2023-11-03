@@ -170,7 +170,7 @@ M. Oren, C. Papageorgiou, P. Sinha, E. Osuna and T. Poggio, "Pedestrian detectio
 P. Viola and M. Jones, "Rapid object detection using a boosted cascade of simple features," Proceedings of the 2001 IEEE Computer Society Conference on Computer Vision and Pattern Recognition. CVPR 2001, 2001, pp. I-511-I-518 vol.1.
 
 """
-function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_right::Array{I, 1}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
+function haar_features(img::IntegralArray{T, 2}, top_left::Array{I, 1}, bottom_right::Array{I, 1}, feat::Symbol, coordinates = nothing) where {T <: Union{Real, Color}, I <: Int}
     check_coordinates(top_left, bottom_right)
     rectangular_feature_coordinates = check_feature_type(feat)
 
@@ -198,7 +198,7 @@ function haar_features(img::AbstractArray{T, 2}, top_left::Array{I, 1}, bottom_r
             ybot = top_left[1] + a[j, 3] - 1
             xtop = top_left[2] + a[j, 2] - 1
             xbot = top_left[2] + a[j, 4] - 1
-            rectangular_features[i,j] = boxdiff(img, ytop, xtop, ybot, xbot)
+            rectangular_features[i,j] = img[ytop .. ybot, xtop .. xbot]
         end
     end
     rectangular_feature_values = (sum(rectangular_features[:, 2:2:end], dims = 2) - sum(rectangular_features[:, 1:2:end], dims = 2))[:]

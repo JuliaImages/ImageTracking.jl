@@ -52,7 +52,7 @@ using Images, StaticArrays, LinearAlgebra
     # Simple Image haar_features
 
     img = Matrix(Diagonal([1,1,1,1,1]))
-    int_img = integral_image(img)
+    int_img = IntegralArray(img)
 
     test_features = haar_features(int_img, [2,2], [4,4], :x2)
     correct_features = [-1,0,0,-1,1,1,-1,0,0,1]
